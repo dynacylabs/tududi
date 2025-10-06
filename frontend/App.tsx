@@ -20,6 +20,7 @@ import TasksToday from './components/Task/TasksToday';
 import TaskDetails from './components/Task/TaskDetails';
 import LoadingScreen from './components/Shared/LoadingScreen';
 import InboxItems from './components/Inbox/InboxItems';
+import OIDCCallback from './components/OIDCCallback';
 // Lazy load Tasks component to prevent issues with tags loading
 const Tasks = lazy(() => import('./components/Tasks'));
 
@@ -249,6 +250,7 @@ const App: React.FC = () => {
                 ) : (
                     <>
                         <Route path="/login" element={<Login />} />
+                        <Route path="/oidc-callback" element={<OIDCCallback />} />
                         <Route
                             path="/"
                             element={<Navigate to="/login" replace />}

@@ -20,8 +20,8 @@ const OIDCCallback: React.FC = () => {
         const errorMessage = params.get('error');
 
         if (success === 'true') {
-            // Authentication successful, redirect to dashboard
-            navigate('/', { replace: true });
+            // Authentication successful, fetch user and redirect
+            fetchUserAndRedirect();
         } else if (errorMessage) {
             // Authentication failed
             setError(decodeURIComponent(errorMessage));
@@ -30,6 +30,36 @@ const OIDCCallback: React.FC = () => {
             setError('Invalid authentication callback');
         }
     }, [navigate]);
+
+    const fetchUserAndRedirect = async () => {
+        try {
+            const response = await fetch('/api/current_user', {
+                credentials: 'include',
+                headers: {
+                    Accept: 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch user after OIDC login');
+            }
+
+            const data = await response.json();
+            if (data.user) {
+                // Dispatch login event so App.tsx updates the user state
+                window.dispatchEvent(
+                    new CustomEvent('userLoggedIn', { detail: data.user })
+                );
+                
+                // Redirect to dashboard
+                navigate('/', { replace: true });
+            } else {
+                throw new Error('No user data received');
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to complete authentication');
+        }
+    };
 
     if (error) {
         return (

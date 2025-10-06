@@ -226,7 +226,10 @@ OIDC_CLIENT_ID=tududi
 OIDC_CLIENT_SECRET=your-secret-here
 OIDC_REDIRECT_URI=http://localhost:3002/api/oidc/callback
 OIDC_SCOPE=openid profile email
+# For development (separate frontend/backend):
 FRONTEND_URL=http://localhost:8080
+# For Docker/production (combined on same port):
+# FRONTEND_URL=http://localhost:3002
 ```
 
 **Authelia Configuration Example:**
