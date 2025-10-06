@@ -154,12 +154,24 @@ module.exports = (sequelize) => {
                     showDailyQuote: true,
                 },
             },
+            oidc_sub: {
+                type: DataTypes.STRING,
+                allowNull: true,
+                unique: true,
+                comment: 'OIDC subject identifier',
+            },
+            oidc_provider: {
+                type: DataTypes.STRING,
+                allowNull: true,
+                comment: 'OIDC provider issuer URL',
+            },
         },
         {
             tableName: 'users',
             hooks: {
                 beforeValidate: async (user) => {
-                    if (user.password) {
+                    // Only hash password if it's provided and user is not using OIDC
+                    if (user.password && !user.oidc_sub) {
                         user.password_digest = await bcrypt.hash(
                             user.password,
                             10

@@ -104,6 +104,7 @@ app.get('/api/health', (req, res) => {
 
 // Routes
 app.use('/api', require('./routes/auth'));
+app.use('/api', require('./routes/oidc')); // OIDC routes (before requireAuth)
 app.use('/api', requireAuth, require('./routes/tasks'));
 app.use('/api', requireAuth, require('./routes/projects'));
 app.use('/api', requireAuth, require('./routes/areas'));
@@ -152,6 +153,13 @@ async function startServer() {
     try {
         // Create session store table
         await sessionStore.sync();
+
+        // Initialize OIDC if enabled
+        const { initializeOIDC } = require('./services/oidcService');
+        await initializeOIDC().catch(err => {
+            console.error('OIDC initialization failed:', err);
+            // Continue starting server even if OIDC fails
+        });
 
         // Initialize Telegram polling after database is ready
         await initializeTelegramPolling();

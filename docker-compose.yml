@@ -2,18 +2,34 @@ services:
   tududi:
     image: chrisvel/tududi:latest
     container_name: tududi
+    ports:
+      - "3002:3002"
     environment:
+      # Required Configuration
       - TUDUDI_USER_EMAIL=admin@example.com
       - TUDUDI_USER_PASSWORD=your-secure-password
-      - TUDUDI_SESSION_SECRET=changeme-please-use-openssl
-      - TUDUDI_ALLOWED_ORIGINS=http://localhost:3002
-      - TUDUDI_UPLOAD_PATH="/app/backend/uploads"
+      - TUDUDI_SESSION_SECRET=changeme-please-use-openssl-rand-hex-64
+      
+      # Optional Configuration
+      - TUDUDI_ALLOWED_ORIGINS=http://localhost:3002,http://localhost:8080
+      - TUDUDI_UPLOAD_PATH=/app/backend/uploads
+      - FRONTEND_URL=http://localhost:8080
+      
       # Runtime UID/GID configuration - set these to match your host user/group
       - PUID=1001
       - PGID=1001
+      
+      # OIDC Configuration (Optional - uncomment to enable)
+      # Requires authelia and redis services below to be enabled
+      # - OIDC_ENABLED=true
+      # - OIDC_ISSUER=http://authelia:9091
+      # - OIDC_CLIENT_ID=tududi
+      # - OIDC_CLIENT_SECRET=your-client-secret-here
+      # - OIDC_REDIRECT_URI=http://localhost:3002/api/oidc/callback
+      # - OIDC_SCOPE=openid profile email
     volumes:
       - ./tududi_db:/app/backend/db
-      #- ./uploads:/app/backend/uploads
-    ports:
-      - "3002:3002"
+      - ./tududi_uploads:/app/backend/uploads
+    networks:
+      - tududi-network
     restart: unless-stopped

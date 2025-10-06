@@ -192,11 +192,109 @@ To completely disable Telegram integration:
 
 ### 🔑 Authentication
 
-The application uses session-based authentication with secure cookies. For development:
-- Frontend runs on port 8080 with webpack dev server
-- Backend runs on port 3001 and handles authentication
+The application supports two authentication methods:
+
+#### Local Authentication (Default)
+Session-based authentication with secure cookies:
+- Frontend runs on port 8080 with webpack dev server (development)
+- Backend runs on port 3001 and handles authentication (development)
 - CORS is configured to allow cross-origin requests during development
 - In production (Docker), both frontend and backend run on the same port (3002)
+
+#### OIDC Authentication (Optional)
+OpenID Connect (OIDC) support for enterprise SSO with Authelia, Keycloak, Auth0, or any OIDC-compliant provider:
+
+**Quick Setup:**
+```bash
+# Run interactive setup wizard
+bash scripts/setup-oidc.sh
+
+# Run database migration
+npm run migration:run
+
+# Start application
+npm start
+```
+
+**Manual Configuration:**
+
+Add to your `.env` file:
+```bash
+OIDC_ENABLED=true
+OIDC_ISSUER=https://auth.example.com
+OIDC_CLIENT_ID=tududi
+OIDC_CLIENT_SECRET=your-secret-here
+OIDC_REDIRECT_URI=http://localhost:3002/api/oidc/callback
+OIDC_SCOPE=openid profile email
+FRONTEND_URL=http://localhost:8080
+```
+
+**Authelia Configuration Example:**
+
+Add to your Authelia `configuration.yml`:
+```yaml
+identity_providers:
+  oidc:
+    clients:
+      - id: tududi
+        description: Tududi Task Manager
+        secret: '<hashed-secret>'  # Generate with: docker run --rm authelia/authelia:latest authelia crypto hash generate argon2 --password 'your-secret'
+        redirect_uris:
+          - http://localhost:3002/api/oidc/callback
+          - https://your-domain.com/api/oidc/callback
+        scopes:
+          - openid
+          - profile
+          - email
+        grant_types:
+          - authorization_code
+        response_types:
+          - code
+        token_endpoint_auth_method: client_secret_post
+```
+
+**Features:**
+- ✅ Automatic user provisioning on first login
+- ✅ Account linking via email matching
+- ✅ Works alongside local authentication
+- ✅ Secure OAuth 2.0 authorization code flow
+- ✅ Compatible with any OIDC provider
+
+**Testing OIDC:**
+```bash
+# Check OIDC status
+curl http://localhost:3002/api/oidc/status
+
+# Test with Docker (includes Authelia + Redis)
+# 1. Uncomment authelia and redis services in docker-compose.yml
+# 2. Uncomment OIDC_* environment variables in tududi service
+# 3. Create authelia-config files from examples
+docker-compose up
+# Visit http://localhost:3002 and login with demo/demo
+```
+
+**OIDC Environment Variables:**
+- `OIDC_ENABLED` - Enable/disable OIDC (true/false)
+- `OIDC_ISSUER` - OIDC provider URL (e.g., https://auth.example.com)
+- `OIDC_CLIENT_ID` - OAuth client ID
+- `OIDC_CLIENT_SECRET` - OAuth client secret
+- `OIDC_REDIRECT_URI` - Callback URL (e.g., http://localhost:3002/api/oidc/callback)
+- `OIDC_SCOPE` - Requested scopes (default: "openid profile email")
+
+**Authentication Flow:**
+```
+User → Click SSO → Frontend → Backend → OIDC Provider (Authelia)
+                                 ↓
+User ← Dashboard ← Frontend ← Backend ← Provider (creates/updates user)
+```
+
+**Troubleshooting:**
+- Ensure all OIDC_* environment variables are set
+- Verify redirect URI matches exactly in provider config
+- Check that OIDC provider is accessible from backend
+- Review server logs for initialization errors
+
+For other OIDC providers (Keycloak, Auth0, Okta, etc.), adjust the `OIDC_ISSUER` to your provider's URL.
 
 ## 🚧 Development
 

@@ -67,6 +67,18 @@ const config = {
 
     uploadPath:
         process.env.TUDUDI_UPLOAD_PATH || path.join(projectRootPath, 'uploads'),
+
+    // OIDC configuration
+    oidc: {
+        enabled: process.env.OIDC_ENABLED === 'true',
+        issuer: process.env.OIDC_ISSUER || '',
+        clientId: process.env.OIDC_CLIENT_ID || '',
+        clientSecret: process.env.OIDC_CLIENT_SECRET || '',
+        redirectUri:
+            process.env.OIDC_REDIRECT_URI ||
+            'http://localhost:3002/api/oidc/callback',
+        scope: process.env.OIDC_SCOPE || 'openid profile email',
+    },
 };
 
 console.log(`Using database file '${config.dbFile}'`);
