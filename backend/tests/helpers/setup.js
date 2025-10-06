@@ -2,6 +2,18 @@
 // so changing the DB in the beginning of this file
 // works.
 
+// Mock OIDC service before any other imports to prevent loading openid-client ES module
+jest.mock('../../services/oidcService', () => ({
+    initializeOIDC: jest.fn().mockResolvedValue(undefined),
+    getOIDCClient: jest.fn().mockReturnValue(null),
+    getAuthorizationUrl: jest.fn().mockReturnValue('https://mock-auth-url.com'),
+    handleCallback: jest.fn().mockResolvedValue({
+        sub: 'mock-sub-123',
+        email: 'test@example.com',
+        name: 'Test User',
+    }),
+}));
+
 const testId = require('crypto').randomBytes(4).toString('hex');
 process.env.DB_FILE = `/tmp/test-${testId}.sqlite3`;
 const { sequelize } = require('../../models');
