@@ -125,28 +125,36 @@ function initializePassport() {
     // The oauth library sends credentials in POST body by default (client_secret_post)
     // Authelia requires them in Authorization header (client_secret_basic)
     
-    // Store the original getOAuthAccessToken method
-    const originalGetOAuthAccessToken = strategy._oauth2.getOAuthAccessToken.bind(strategy._oauth2);
+    // Set the client authentication method to use Basic Auth
+    strategy._oauth2._clientSecret = oidcConfig.clientSecret;
+    strategy._oauth2._useAuthorizationHeaderForGET = false;
     
-    // Replace it with our version that uses HTTP Basic Auth
-    strategy._oauth2.getOAuthAccessToken = function(code, params, callback) {
-        // Set the Authorization header with Basic Auth
-        const credentials = Buffer.from(
-            `${oidcConfig.clientId}:${oidcConfig.clientSecret}`
-        ).toString('base64');
+    // Override the internal _request method to intercept and modify the token request
+    const originalRequest = strategy._oauth2._request.bind(strategy._oauth2);
+    strategy._oauth2._request = function(method, url, headers, post_body, access_token, callback) {
+        // Only modify token endpoint requests
+        if (url.includes('/token')) {
+            console.log('Intercepting token request - forcing client_secret_basic');
+            
+            // Add Basic Auth header
+            const credentials = Buffer.from(
+                `${oidcConfig.clientId}:${oidcConfig.clientSecret}`
+            ).toString('base64');
+            headers = headers || {};
+            headers['Authorization'] = `Basic ${credentials}`;
+            
+            // Remove client credentials from POST body if present
+            if (post_body) {
+                post_body = post_body
+                    .replace(/&?client_id=[^&]*/g, '')
+                    .replace(/&?client_secret=[^&]*/g, '')
+                    .replace(/^&/, ''); // Remove leading &
+                console.log('Cleaned POST body:', post_body);
+            }
+        }
         
-        this._customHeaders = this._customHeaders || {};
-        this._customHeaders['Authorization'] = `Basic ${credentials}`;
-        
-        // Don't send client credentials in POST body
-        const cleanParams = { ...params };
-        delete cleanParams.client_id;
-        delete cleanParams.client_secret;
-        
-        console.log('Token request - using client_secret_basic (Authorization header)');
-        
-        // Call the original method with cleaned params
-        return originalGetOAuthAccessToken.call(this, code, cleanParams, callback);
+        // Call original request with modified params
+        return originalRequest(method, url, headers, post_body, access_token, callback);
     };
 
     passport.use('oidc', strategy);
