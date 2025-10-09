@@ -23,6 +23,17 @@ const credentials = {
             process.env.GOOGLE_REDIRECT_URI ||
             'http://localhost:3002/api/calendar/oauth/callback',
     },
+    oidc: {
+        issuer: process.env.OIDC_ISSUER,
+        clientId: process.env.OIDC_CLIENT_ID,
+        clientSecret: process.env.OIDC_CLIENT_SECRET,
+        callbackUrl:
+            process.env.OIDC_CALLBACK_URL ||
+            'http://localhost:3002/api/auth/oidc/callback',
+        authorizationUrl: process.env.OIDC_AUTHORIZATION_URL,
+        tokenUrl: process.env.OIDC_TOKEN_URL,
+        userInfoUrl: process.env.OIDC_USER_INFO_URL,
+    },
 };
 
 const config = {
@@ -64,6 +75,10 @@ const config = {
         require('crypto').randomBytes(64).toString('hex'),
 
     credentials,
+
+    oidcEnabled:
+        process.env.OIDC_ENABLED === 'true' &&
+        Boolean(credentials.oidc.issuer && credentials.oidc.clientId),
 
     uploadPath:
         process.env.TUDUDI_UPLOAD_PATH || path.join(projectRootPath, 'uploads'),

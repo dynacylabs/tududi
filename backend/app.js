@@ -6,11 +6,13 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const session = require('express-session');
+const passport = require('passport');
 const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const { sequelize } = require('./models');
 const { initializeTelegramPolling } = require('./services/telegramInitializer');
 const taskScheduler = require('./services/taskScheduler');
 const { setConfig, getConfig } = require('./config/config');
+const { initializePassport } = require('./config/passport');
 const config = getConfig();
 
 const app = express();
@@ -67,6 +69,11 @@ app.use(
         },
     })
 );
+
+// Initialize Passport
+initializePassport();
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Static files
 if (config.production) {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -7,8 +7,21 @@ const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [oidcEnabled, setOidcEnabled] = useState(false);
     const navigate = useNavigate();
     const { t } = useTranslation();
+
+    useEffect(() => {
+        // Check if OIDC is enabled
+        fetch('/api/auth/oidc/config')
+            .then((res) => res.json())
+            .then((data) => {
+                setOidcEnabled(data.enabled);
+            })
+            .catch((err) => {
+                console.error('Failed to fetch OIDC config:', err);
+            });
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,6 +55,10 @@ const Login: React.FC = () => {
             setError('An error occurred. Please try again.');
             console.error('Error during login:', err);
         }
+    };
+
+    const handleOidcLogin = () => {
+        window.location.href = '/api/auth/oidc/login';
     };
 
     return (
@@ -93,6 +110,35 @@ const Login: React.FC = () => {
                         {t('auth.login', 'Login')}
                     </button>
                 </form>
+                {oidcEnabled && (
+                    <>
+                        <div className="my-4 flex items-center">
+                            <div className="flex-grow border-t border-gray-300"></div>
+                            <span className="px-4 text-gray-500 text-sm">
+                                {t('auth.or', 'OR')}
+                            </span>
+                            <div className="flex-grow border-t border-gray-300"></div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleOidcLogin}
+                            className="w-full bg-gray-700 text-white py-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center justify-center"
+                        >
+                            <svg
+                                className="w-5 h-5 mr-2"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                            >
+                                <path
+                                    fillRule="evenodd"
+                                    d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                    clipRule="evenodd"
+                                />
+                            </svg>
+                            {t('auth.loginWithSSO', 'Login with SSO')}
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );

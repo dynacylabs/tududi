@@ -443,6 +443,8 @@
     "rememberMe": "Remember Me",
     "loginSuccess": "Login Successful",
     "loginFailed": "Login Failed",
+    "or": "OR",
+    "loginWithSSO": "Login with SSO",
     "logoutSuccess": "Logout Successful"
   },
   "dropdown": {

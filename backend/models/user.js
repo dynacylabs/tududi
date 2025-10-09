@@ -35,8 +35,17 @@ module.exports = (sequelize) => {
             },
             password_digest: {
                 type: DataTypes.STRING,
-                allowNull: false,
+                allowNull: true,
                 field: 'password_digest',
+            },
+            oidc_sub: {
+                type: DataTypes.STRING,
+                allowNull: true,
+                unique: true,
+            },
+            oidc_provider: {
+                type: DataTypes.STRING,
+                allowNull: true,
             },
             appearance: {
                 type: DataTypes.STRING,
@@ -159,6 +168,7 @@ module.exports = (sequelize) => {
             tableName: 'users',
             hooks: {
                 beforeValidate: async (user) => {
+                    // Only hash password if it's provided (not for OIDC users)
                     if (user.password) {
                         user.password_digest = await bcrypt.hash(
                             user.password,

@@ -1,7 +1,11 @@
 const express = require('express');
+const passport = require('passport');
 const { User } = require('../models');
+const { getConfig } = require('../config/config');
 const packageJson = require('../../package.json');
 const router = express.Router();
+
+const config = getConfig();
 
 // Get version
 router.get('/version', (req, res) => {
@@ -90,5 +94,55 @@ router.get('/logout', (req, res) => {
         res.json({ message: 'Logged out successfully' });
     });
 });
+
+// OIDC Configuration endpoint
+router.get('/oidc/config', (req, res) => {
+    res.json({
+        enabled: config.oidcEnabled || false,
+    });
+});
+
+// OIDC Login
+router.get(
+    '/oidc/login',
+    (req, res, next) => {
+        if (!config.oidcEnabled) {
+            return res.status(400).json({ error: 'OIDC is not enabled' });
+        }
+        next();
+    },
+    passport.authenticate('oidc')
+);
+
+// OIDC Callback
+router.get(
+    '/oidc/callback',
+    (req, res, next) => {
+        if (!config.oidcEnabled) {
+            return res.status(400).json({ error: 'OIDC is not enabled' });
+        }
+        next();
+    },
+    passport.authenticate('oidc', { failureRedirect: '/login' }),
+    async (req, res) => {
+        try {
+            // Set session
+            req.session.userId = req.user.id;
+
+            await new Promise((resolve, reject) => {
+                req.session.save((err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+
+            // Redirect to frontend
+            res.redirect(config.frontendUrl + '/today');
+        } catch (error) {
+            console.error('OIDC callback error:', error);
+            res.redirect('/login?error=auth_failed');
+        }
+    }
+);
 
 module.exports = router;
