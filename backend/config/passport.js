@@ -121,23 +121,33 @@ function initializePassport() {
         }
     );
 
-    // Override the _oauth2.getOAuthAccessToken method to use client_secret_basic
-    const originalGetOAuthAccessToken = strategy._oauth2.getOAuthAccessToken.bind(strategy._oauth2);
-    strategy._oauth2.getOAuthAccessToken = function(code, params, callback) {
-        // Force use of Basic Authentication for token endpoint
-        this._useAuthorizationHeaderForGET = true;
-        
-        // Remove client_id and client_secret from POST body (they'll be in Authorization header)
-        const modifiedParams = { ...params };
-        delete modifiedParams.client_id;
-        delete modifiedParams.client_secret;
-        
-        // Call original with modified params - credentials will be sent in Authorization header
-        return originalGetOAuthAccessToken(code, modifiedParams, callback);
-    };
+    // CRITICAL FIX: Override OAuth2 client to use client_secret_basic
+    // The oauth library sends credentials in POST body by default (client_secret_post)
+    // Authelia requires them in Authorization header (client_secret_basic)
     
-    // Ensure the oauth2 client uses auth header
-    strategy._oauth2.useAuthorizationHeaderforGET(true);
+    // Store the original getOAuthAccessToken method
+    const originalGetOAuthAccessToken = strategy._oauth2.getOAuthAccessToken.bind(strategy._oauth2);
+    
+    // Replace it with our version that uses HTTP Basic Auth
+    strategy._oauth2.getOAuthAccessToken = function(code, params, callback) {
+        // Set the Authorization header with Basic Auth
+        const credentials = Buffer.from(
+            `${oidcConfig.clientId}:${oidcConfig.clientSecret}`
+        ).toString('base64');
+        
+        this._customHeaders = this._customHeaders || {};
+        this._customHeaders['Authorization'] = `Basic ${credentials}`;
+        
+        // Don't send client credentials in POST body
+        const cleanParams = { ...params };
+        delete cleanParams.client_id;
+        delete cleanParams.client_secret;
+        
+        console.log('Token request - using client_secret_basic (Authorization header)');
+        
+        // Call the original method with cleaned params
+        return originalGetOAuthAccessToken.call(this, code, cleanParams, callback);
+    };
 
     passport.use('oidc', strategy);
 
