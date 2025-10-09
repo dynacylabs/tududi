@@ -93,20 +93,26 @@ function initializePassport() {
                     where: { oidc_sub: sub, oidc_provider: issuer },
                 });
 
+                console.log(`Looking for user with oidc_sub: ${sub}, found: ${!!user}`);
+
                 if (!user) {
                     // Try to find by email (for linking existing accounts)
                     user = await User.findOne({ where: { email } });
+                    
+                    console.log(`Looking for user with email: ${email}, found: ${!!user}`);
 
                     if (user) {
                         // Link existing account with OIDC
+                        console.log(`Linking existing user ${email} (id: ${user.id}) with OIDC`);
                         user.oidc_sub = sub;
                         user.oidc_provider = issuer;
                         await user.save();
                         console.log(
-                            `Linked existing user ${email} with OIDC`
+                            `✅ Linked existing user ${email} with OIDC`
                         );
                     } else {
                         // Create new user
+                        console.log(`Creating new user with email: ${email}, sub: ${sub}`);
                         user = await User.create({
                             email,
                             name,
@@ -117,8 +123,10 @@ function initializePassport() {
                             appearance: 'light',
                             timezone: 'UTC',
                         });
-                        console.log(`Created new OIDC user: ${email}`);
+                        console.log(`✅ Created new OIDC user: ${email} (id: ${user.id})`);
                     }
+                } else {
+                    console.log(`✅ Found existing OIDC user: ${user.email} (id: ${user.id})`);
                 }
 
                 return done(null, user);
