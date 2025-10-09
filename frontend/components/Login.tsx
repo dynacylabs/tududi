@@ -13,10 +13,23 @@ const Login: React.FC = () => {
     const navigate = useNavigate();
     const { t } = useTranslation();
 
-    // Check if user explicitly wants password login
+    // Check if user explicitly wants password login or if there was an error
     const usePasswordLogin = searchParams.get('password') === 'true';
+    const hasError = searchParams.get('error') !== null;
+    const errorType = searchParams.get('error');
 
     useEffect(() => {
+        // Set error message if present
+        if (hasError) {
+            const errorMessages: Record<string, string> = {
+                'auth_failed': 'Authentication failed. Please try again.',
+                'no_user': 'Unable to retrieve user information.',
+                'session_failed': 'Session error. Please try again.',
+                'session_save_failed': 'Unable to save session. Please try again.',
+            };
+            setError(errorMessages[errorType || ''] || 'Login failed. Please try again.');
+        }
+
         // Check if OIDC is enabled
         fetch('/api/auth/oidc/config')
             .then((res) => res.json())
@@ -24,16 +37,22 @@ const Login: React.FC = () => {
                 setOidcEnabled(data.enabled);
                 setLoading(false);
                 
-                // Automatically redirect to OIDC login if enabled and not explicitly using password
-                if (data.enabled && !usePasswordLogin) {
-                    window.location.href = '/api/auth/oidc/login';
+                // Only auto-redirect if:
+                // 1. OIDC is enabled
+                // 2. User didn't explicitly request password login
+                // 3. There was no error from previous attempt
+                if (data.enabled && !usePasswordLogin && !hasError) {
+                    // Add a small delay to prevent instant redirect loop
+                    setTimeout(() => {
+                        window.location.href = '/api/auth/oidc/login';
+                    }, 500);
                 }
             })
             .catch((err) => {
                 console.error('Failed to fetch OIDC config:', err);
                 setLoading(false);
             });
-    }, [usePasswordLogin]);
+    }, [usePasswordLogin, hasError, errorType]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

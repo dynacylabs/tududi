@@ -15,6 +15,12 @@ router.get('/version', (req, res) => {
 // Get current user
 router.get('/current_user', async (req, res) => {
     try {
+        console.log('=== Current User Check ===');
+        console.log('Session ID:', req.sessionID);
+        console.log('Session:', req.session);
+        console.log('Session userId:', req.session?.userId);
+        console.log('Cookies:', req.headers.cookie);
+        
         if (req.session && req.session.userId) {
             const user = await User.findByPk(req.session.userId, {
                 attributes: [
@@ -26,8 +32,13 @@ router.get('/current_user', async (req, res) => {
                 ],
             });
             if (user) {
+                console.log('✅ User found:', user.email);
                 return res.json({ user });
+            } else {
+                console.log('❌ User not found in database for userId:', req.session.userId);
             }
+        } else {
+            console.log('❌ No session or userId in session');
         }
 
         res.json({ user: null });
@@ -125,11 +136,17 @@ router.get(
     },
     (req, res, next) => {
         passport.authenticate('oidc', (err, user, info) => {
+            console.log('=== OIDC Callback Handler ===');
+            console.log('Error:', err);
+            console.log('User:', user ? `ID: ${user.id}, Email: ${user.email}` : 'null');
+            console.log('Info:', info);
+            console.log('Session before login:', req.session);
+            
             if (err) {
                 console.error('OIDC authentication error:', err);
                 console.error('Error details:', JSON.stringify(err, null, 2));
                 return res.redirect(
-                    config.frontendUrl + '/login?error=auth_failed'
+                    config.frontendUrl + '/login?password=true&error=auth_failed'
                 );
             }
             
@@ -137,7 +154,7 @@ router.get(
                 console.error('OIDC authentication failed - no user returned');
                 console.error('Info:', info);
                 return res.redirect(
-                    config.frontendUrl + '/login?error=no_user'
+                    config.frontendUrl + '/login?password=true&error=no_user'
                 );
             }
 
@@ -145,22 +162,31 @@ router.get(
                 if (err) {
                     console.error('Session login error:', err);
                     return res.redirect(
-                        config.frontendUrl + '/login?error=session_failed'
+                        config.frontendUrl + '/login?password=true&error=session_failed'
                     );
                 }
                 
+                console.log('User logged in via passport, setting session userId');
+                
                 // Set session userId explicitly
                 req.session.userId = user.id;
+                
+                console.log('Session after setting userId:', req.session);
+                console.log('Session ID:', req.sessionID);
                 
                 req.session.save((err) => {
                     if (err) {
                         console.error('Session save error:', err);
                         return res.redirect(
-                            config.frontendUrl + '/login?error=session_save_failed'
+                            config.frontendUrl + '/login?password=true&error=session_save_failed'
                         );
                     }
                     
-                    console.log(`User ${user.email} logged in successfully via OIDC`);
+                    console.log('Session saved successfully');
+                    console.log('Session cookie:', req.session.cookie);
+                    console.log(`✅ User ${user.email} logged in successfully via OIDC`);
+                    console.log('Redirecting to:', config.frontendUrl + '/today');
+                    
                     res.redirect(config.frontendUrl + '/today');
                 });
             });

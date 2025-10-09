@@ -17,6 +17,9 @@ const config = getConfig();
 
 const app = express();
 
+// Trust proxy if behind reverse proxy (like nginx, traefik, etc.)
+app.set('trust proxy', 1);
+
 // Session store
 const sessionStore = new SequelizeStore({
     db: sequelize,
@@ -61,9 +64,10 @@ app.use(
         store: sessionStore,
         resave: false,
         saveUninitialized: false,
+        proxy: true, // Trust the reverse proxy
         cookie: {
             httpOnly: true,
-            secure: false,
+            secure: config.production, // Use secure cookies in production (HTTPS)
             maxAge: 2592000000, // 30 days
             sameSite: 'lax',
         },
