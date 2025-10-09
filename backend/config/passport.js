@@ -36,6 +36,7 @@ function initializePassport() {
         clientSecret: oidcConfig.clientSecret,
         callbackURL: oidcConfig.callbackUrl,
         scope: ['openid', 'profile', 'email'],
+        skipUserProfile: false, // Ensure we fetch user profile
     };
 
     // Add optional URLs if provided (for Authelia compatibility)
@@ -60,11 +61,18 @@ function initializePassport() {
 
     const strategy = new OpenIDConnectStrategy(
         strategyConfig,
-        async (issuer, sub, profile, accessToken, refreshToken, done) => {
+        async (issuer, profile, done) => {
             try {
                 console.log('OIDC Callback - Issuer:', issuer);
-                console.log('OIDC Callback - Sub:', sub);
                 console.log('OIDC Callback - Profile:', JSON.stringify(profile, null, 2));
+                
+                // Extract sub from profile
+                const sub = profile.id || profile.sub;
+                
+                if (!sub) {
+                    console.error('No sub found in profile');
+                    return done(new Error('Subject identifier not found'), null);
+                }
                 
                 const email =
                     profile.emails && profile.emails[0]
