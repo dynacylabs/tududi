@@ -123,25 +123,48 @@ router.get(
         }
         next();
     },
-    passport.authenticate('oidc', { failureRedirect: '/login' }),
-    async (req, res) => {
-        try {
-            // Set session
-            req.session.userId = req.user.id;
+    (req, res, next) => {
+        passport.authenticate('oidc', (err, user, info) => {
+            if (err) {
+                console.error('OIDC authentication error:', err);
+                console.error('Error details:', JSON.stringify(err, null, 2));
+                return res.redirect(
+                    config.frontendUrl + '/login?error=auth_failed'
+                );
+            }
+            
+            if (!user) {
+                console.error('OIDC authentication failed - no user returned');
+                console.error('Info:', info);
+                return res.redirect(
+                    config.frontendUrl + '/login?error=no_user'
+                );
+            }
 
-            await new Promise((resolve, reject) => {
+            req.logIn(user, (err) => {
+                if (err) {
+                    console.error('Session login error:', err);
+                    return res.redirect(
+                        config.frontendUrl + '/login?error=session_failed'
+                    );
+                }
+                
+                // Set session userId explicitly
+                req.session.userId = user.id;
+                
                 req.session.save((err) => {
-                    if (err) reject(err);
-                    else resolve();
+                    if (err) {
+                        console.error('Session save error:', err);
+                        return res.redirect(
+                            config.frontendUrl + '/login?error=session_save_failed'
+                        );
+                    }
+                    
+                    console.log(`User ${user.email} logged in successfully via OIDC`);
+                    res.redirect(config.frontendUrl + '/today');
                 });
             });
-
-            // Redirect to frontend
-            res.redirect(config.frontendUrl + '/today');
-        } catch (error) {
-            console.error('OIDC callback error:', error);
-            res.redirect('/login?error=auth_failed');
-        }
+        })(req, res, next);
     }
 );
 

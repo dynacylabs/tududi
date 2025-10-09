@@ -35,6 +35,7 @@ function initializePassport() {
         clientSecret: oidcConfig.clientSecret,
         callbackURL: oidcConfig.callbackUrl,
         scope: ['openid', 'profile', 'email'],
+        tokenEndpointAuthMethod: 'client_secret_basic', // Match Authelia config
     };
 
     // Add optional URLs if provided (for Authelia compatibility)
@@ -52,16 +53,20 @@ function initializePassport() {
         'oidc',
         new OpenIDConnectStrategy(
             strategyConfig,
-            async (issuer, profile, done) => {
+            async (issuer, sub, profile, accessToken, refreshToken, done) => {
                 try {
-                    const sub = profile.id;
+                    console.log('OIDC Callback - Issuer:', issuer);
+                    console.log('OIDC Callback - Sub:', sub);
+                    console.log('OIDC Callback - Profile:', JSON.stringify(profile, null, 2));
+                    
                     const email =
                         profile.emails && profile.emails[0]
                             ? profile.emails[0].value
-                            : null;
-                    const name = profile.displayName || email;
+                            : profile.email || null;
+                    const name = profile.displayName || profile.name || email;
 
                     if (!email) {
+                        console.error('No email provided by OIDC provider. Profile:', profile);
                         return done(
                             new Error('Email not provided by OIDC provider'),
                             null
