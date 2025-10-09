@@ -96,7 +96,7 @@ router.get('/logout', (req, res) => {
 });
 
 // OIDC Configuration endpoint
-router.get('/oidc/config', (req, res) => {
+router.get('/auth/oidc/config', (req, res) => {
     res.json({
         enabled: config.oidcEnabled || false,
     });
@@ -104,7 +104,7 @@ router.get('/oidc/config', (req, res) => {
 
 // OIDC Login
 router.get(
-    '/oidc/login',
+    '/auth/oidc/login',
     (req, res, next) => {
         if (!config.oidcEnabled) {
             return res.status(400).json({ error: 'OIDC is not enabled' });
@@ -116,7 +116,7 @@ router.get(
 
 // OIDC Callback
 router.get(
-    '/oidc/callback',
+    '/auth/oidc/callback',
     (req, res, next) => {
         if (!config.oidcEnabled) {
             return res.status(400).json({ error: 'OIDC is not enabled' });

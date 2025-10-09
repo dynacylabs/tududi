@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
 
@@ -8,8 +8,13 @@ const Login: React.FC = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [oidcEnabled, setOidcEnabled] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { t } = useTranslation();
+
+    // Check if user explicitly wants password login
+    const usePasswordLogin = searchParams.get('password') === 'true';
 
     useEffect(() => {
         // Check if OIDC is enabled
@@ -17,11 +22,18 @@ const Login: React.FC = () => {
             .then((res) => res.json())
             .then((data) => {
                 setOidcEnabled(data.enabled);
+                setLoading(false);
+                
+                // Automatically redirect to OIDC login if enabled and not explicitly using password
+                if (data.enabled && !usePasswordLogin) {
+                    window.location.href = '/api/auth/oidc/login';
+                }
             })
             .catch((err) => {
                 console.error('Failed to fetch OIDC config:', err);
+                setLoading(false);
             });
-    }, []);
+    }, [usePasswordLogin]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -60,6 +72,42 @@ const Login: React.FC = () => {
     const handleOidcLogin = () => {
         window.location.href = '/api/auth/oidc/login';
     };
+
+    // Show loading state while checking OIDC config
+    if (loading) {
+        return (
+            <div className="bg-gray-100 flex flex-col items-center justify-center min-h-screen px-4">
+                <h1 className="text-5xl font-bold text-gray-300 mb-6">tududi</h1>
+                <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p className="text-gray-600">
+                        {t('auth.loading', 'Loading...')}
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    // If OIDC is enabled and user is being redirected
+    if (oidcEnabled && !usePasswordLogin) {
+        return (
+            <div className="bg-gray-100 flex flex-col items-center justify-center min-h-screen px-4">
+                <h1 className="text-5xl font-bold text-gray-300 mb-6">tududi</h1>
+                <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p className="text-gray-600 mb-4">
+                        {t('auth.redirectingToSSO', 'Redirecting to SSO...')}
+                    </p>
+                    <a
+                        href="/login?password=true"
+                        className="text-sm text-blue-500 hover:text-blue-600"
+                    >
+                        {t('auth.usePasswordInstead', 'Use password login instead')}
+                    </a>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-gray-100 flex flex-col items-center justify-center min-h-screen px-4">
@@ -110,7 +158,7 @@ const Login: React.FC = () => {
                         {t('auth.login', 'Login')}
                     </button>
                 </form>
-                {oidcEnabled && (
+                {oidcEnabled && usePasswordLogin && (
                     <>
                         <div className="my-4 flex items-center">
                             <div className="flex-grow border-t border-gray-300"></div>

@@ -1,4 +1,4 @@
-{
+rm {
   "common": {
     "save": "Save",
     "cancel": "Cancel",
@@ -445,6 +445,9 @@
     "loginFailed": "Login Failed",
     "or": "OR",
     "loginWithSSO": "Login with SSO",
+    "loading": "Loading...",
+    "redirectingToSSO": "Redirecting to SSO...",
+    "usePasswordInstead": "Use password login instead",
     "logoutSuccess": "Logout Successful"
   },
   "dropdown": {
