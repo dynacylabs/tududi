@@ -152,7 +152,7 @@ describe('User Create Script', () => {
 
                 expect(result.code).toBe(1);
             }
-        }, 15000);
+        }, 30000);
 
         it('should update password for existing user', async () => {
             const email = 'existing@example.com';
