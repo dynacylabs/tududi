@@ -138,8 +138,9 @@ router.get(
         passport.authenticate('oidc', (err, user, info) => {
             console.log('=== OIDC Callback Handler ===');
             console.log('Error:', err);
-            console.log('User:', user ? `ID: ${user.id}, Email: ${user.email}` : 'null');
+            console.log('User from SSO:', user ? `ID: ${user.id}, Email: ${user.email}` : 'null');
             console.log('Info:', info);
+            console.log('Current session userId:', req.session?.userId);
             console.log('Session before login:', req.session);
             
             if (err) {
@@ -158,36 +159,56 @@ router.get(
                 );
             }
 
-            req.logIn(user, (err) => {
+            // Check if there's an existing session with a different user
+            const existingUserId = req.session?.userId;
+            if (existingUserId && existingUserId !== user.id) {
+                console.log(`⚠️ Session switch detected: existing user ID ${existingUserId} → new user ID ${user.id} (${user.email})`);
+                console.log('Destroying old session and creating new one');
+            }
+
+            // Regenerate session to prevent session fixation and ensure clean state
+            // This is especially important when switching between SSO users
+            req.session.regenerate((err) => {
                 if (err) {
-                    console.error('Session login error:', err);
+                    console.error('Session regeneration error:', err);
                     return res.redirect(
-                        config.frontendUrl + '/login?password=true&error=session_failed'
+                        config.frontendUrl + '/login?password=true&error=session_regeneration_failed'
                     );
                 }
                 
-                console.log('User logged in via passport, setting session userId');
-                
-                // Set session userId explicitly
-                req.session.userId = user.id;
-                
-                console.log('Session after setting userId:', req.session);
-                console.log('Session ID:', req.sessionID);
-                
-                req.session.save((err) => {
+                console.log('Session regenerated successfully');
+                console.log('New Session ID:', req.sessionID);
+
+                req.logIn(user, (err) => {
                     if (err) {
-                        console.error('Session save error:', err);
+                        console.error('Session login error:', err);
                         return res.redirect(
-                            config.frontendUrl + '/login?password=true&error=session_save_failed'
+                            config.frontendUrl + '/login?password=true&error=session_failed'
                         );
                     }
                     
-                    console.log('Session saved successfully');
-                    console.log('Session cookie:', req.session.cookie);
-                    console.log(`✅ User ${user.email} logged in successfully via OIDC`);
-                    console.log('Redirecting to:', config.frontendUrl + '/today');
+                    console.log('User logged in via passport, setting session userId');
                     
-                    res.redirect(config.frontendUrl + '/today');
+                    // Set session userId explicitly
+                    req.session.userId = user.id;
+                    
+                    console.log('Session after setting userId:', req.session);
+                    
+                    req.session.save((err) => {
+                        if (err) {
+                            console.error('Session save error:', err);
+                            return res.redirect(
+                                config.frontendUrl + '/login?password=true&error=session_save_failed'
+                            );
+                        }
+                        
+                        console.log('Session saved successfully');
+                        console.log('Session cookie:', req.session.cookie);
+                        console.log(`✅ User ${user.email} (ID: ${user.id}) logged in successfully via OIDC`);
+                        console.log('Redirecting to:', config.frontendUrl + '/today');
+                        
+                        res.redirect(config.frontendUrl + '/today');
+                    });
                 });
             });
         })(req, res, next);
