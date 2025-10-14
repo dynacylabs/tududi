@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Task } from '../../entities/Task';
 import { Project } from '../../entities/Project';
 import TaskHeader from './TaskHeader';
+import { useToast } from '../Shared/ToastContext';
 import TaskPriorityIcon from './TaskPriorityIcon';
 
 // Import SubtasksDisplay component from TaskHeader
@@ -140,6 +141,7 @@ interface TaskItemProps {
     hideProjectName?: boolean;
     onToggleToday?: (taskId: number) => Promise<void>;
     isUpcomingView?: boolean;
+    showCompletedTasks?: boolean;
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({
@@ -151,6 +153,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
     hideProjectName = false,
     onToggleToday,
     isUpcomingView = false,
+    showCompletedTasks = false,
 }) => {
     const navigate = useNavigate();
     const { t } = useTranslation();
@@ -162,6 +165,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
     const [parentTaskModalOpen, setParentTaskModalOpen] = useState(false);
     const [parentTask, setParentTask] = useState<Task | null>(null);
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+    const { showErrorToast } = useToast();
+    const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 
     // Subtasks state
     const [showSubtasks, setShowSubtasks] = useState(false);
@@ -282,8 +287,13 @@ const TaskItem: React.FC<TaskItemProps> = ({
     };
 
     const handleSave = async (updatedTask: Task) => {
-        await onTaskUpdate(updatedTask);
-        modalStore.closeTaskModal();
+        try {
+            await onTaskUpdate(updatedTask);
+            modalStore.closeTaskModal();
+        } catch (error: any) {
+            console.error('Task update failed:', error);
+            showErrorToast(t('errors.permissionDenied', 'Permission denied'));
+        }
     };
 
     const handleEdit = (e: React.MouseEvent) => {
@@ -305,14 +315,35 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
     const handleDelete = async () => {
         if (task.id) {
-            modalStore.closeTaskModal(); // Close modal when deleting
-            onTaskDelete(task.id);
+            try {
+                modalStore.closeTaskModal();
+                await onTaskDelete(task.id);
+            } catch (error: any) {
+                console.error('Task delete failed:', error);
+                showErrorToast(
+                    t('errors.permissionDenied', 'Permission denied')
+                );
+            }
         }
     };
 
     const handleToggleCompletion = async () => {
         if (task.id) {
             try {
+                // Check if task is being completed (not uncompleted)
+                const isCompletingTask =
+                    task.status !== 'done' &&
+                    task.status !== 2 &&
+                    task.status !== 'archived' &&
+                    task.status !== 3;
+
+                // If completing the task in upcoming view and not showing completed tasks, trigger animation
+                if (isCompletingTask && isUpcomingView && !showCompletedTasks) {
+                    setIsAnimatingOut(true);
+                    // Wait for animation to complete before updating state
+                    await new Promise((resolve) => setTimeout(resolve, 300));
+                }
+
                 const response = await toggleTaskCompletion(task.id);
 
                 // Handle the updated task
@@ -366,6 +397,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
                 }
             } catch (error) {
                 console.error('Error toggling task completion:', error);
+                setIsAnimatingOut(false); // Reset animation state on error
             }
         }
     };
@@ -411,11 +443,11 @@ const TaskItem: React.FC<TaskItemProps> = ({
     return (
         <>
             <div
-                className={`rounded-lg shadow-sm bg-white dark:bg-gray-900 relative overflow-visible transition-all duration-200 ease-in-out ${
+                className={`rounded-lg shadow-sm bg-white dark:bg-gray-900 relative overflow-visible transition-opacity duration-300 ease-in-out ${
                     isInProgress
                         ? 'border-2 border-green-400/60 dark:border-green-500/60'
                         : ''
-                }`}
+                } ${isAnimatingOut ? 'opacity-0' : 'opacity-100'}`}
             >
                 <TaskHeader
                     task={task}
