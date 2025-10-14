@@ -9,15 +9,12 @@ import {
 import { EnvelopeIcon } from '@heroicons/react/24/outline';
 import { useTranslation } from 'react-i18next';
 import PomodoroTimer from './Shared/PomodoroTimer';
+import { User } from '../entities/User';
 
 interface NavbarProps {
     isDarkMode: boolean;
     toggleDarkMode: () => void;
-    currentUser: {
-        email: string;
-        avatarUrl?: string;
-        is_admin?: boolean;
-    };
+    currentUser: User;
     setCurrentUser: React.Dispatch<React.SetStateAction<any>>;
     isSidebarOpen: boolean;
     setIsSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
