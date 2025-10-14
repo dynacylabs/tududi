@@ -13,6 +13,7 @@ import { ToastProvider } from './components/Shared/ToastContext';
 import { TelegramStatusProvider } from './contexts/TelegramStatusContext';
 import './i18n'; // Import i18n config to initialize it
 import './styles/markdown.css'; // Import markdown styles
+import './styles/pwa.css'; // Import PWA styles for safe areas and fullscreen
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n'; // Import the i18n instance with its configuration
 
@@ -68,5 +69,51 @@ if (module.hot) {
                 </I18nextProvider>
             );
         }
+    });
+}
+
+// Register service worker for PWA support
+if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker
+            .register('/service-worker.js')
+            .then((registration) => {
+                console.log('[PWA] Service Worker registered:', registration.scope);
+
+                // Check for updates periodically
+                setInterval(() => {
+                    registration.update();
+                }, 60000); // Check every minute
+
+                // Handle updates
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    if (newWorker) {
+                        newWorker.addEventListener('statechange', () => {
+                            if (
+                                newWorker.state === 'installed' &&
+                                navigator.serviceWorker.controller
+                            ) {
+                                // New service worker available
+                                console.log('[PWA] New content available, please refresh');
+                                
+                                // Optionally show a notification to the user
+                                if (confirm('New version available! Reload to update?')) {
+                                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                    window.location.reload();
+                                }
+                            }
+                        });
+                    }
+                });
+            })
+            .catch((error) => {
+                console.error('[PWA] Service Worker registration failed:', error);
+            });
+
+        // Reload page when new service worker takes control
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            window.location.reload();
+        });
     });
 }

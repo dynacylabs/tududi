@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Generate PWA Icons</title>
+  <style>
+    body { font-family: system-ui; padding: 20px; }
+    canvas { border: 1px solid #ccc; margin: 10px; }
+    .icon-set { margin: 20px 0; }
+    button { padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>PWA Icon Generator</h1>
+  <p>Click the buttons below to download each icon:</p>
+  <div id="icons"></div>
+  
+  <script>
+    const icons = [{"size":192,"name":"icon-192x192.png","purpose":"Android standard icon"},{"size":512,"name":"icon-512x512.png","purpose":"Android high-res icon"},{"size":180,"name":"apple-touch-icon.png","purpose":"iOS home screen icon"},{"size":152,"name":"apple-touch-icon-152x152.png","purpose":"iOS iPad icon"},{"size":167,"name":"apple-touch-icon-167x167.png","purpose":"iOS iPad Pro icon"}];
+    const svgDataUrl = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIj4KICA8c3R5bGU+CiAgICAuY2lyY2xlIHsKICAgICAgc3Ryb2tlOiAjNGE1NTY4OwogICAgICBmaWxsOiBub25lOwogICAgfQogICAgLmNoZWNrbWFyayB7CiAgICAgIHN0cm9rZTogIzRhNTU2ODsKICAgICAgZmlsbDogbm9uZTsKICAgIH0KICAgIEBtZWRpYSAocHJlZmVycy1jb2xvci1zY2hlbWU6IGRhcmspIHsKICAgICAgLmNpcmNsZSB7CiAgICAgICAgc3Ryb2tlOiAjZTJlOGYwOwogICAgICB9CiAgICAgIC5jaGVja21hcmsgewogICAgICAgIHN0cm9rZTogI2UyZThmMDsKICAgICAgfQogICAgfQogIDwvc3R5bGU+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSJ0cmFuc3BhcmVudCIvPgogIDxjaXJjbGUgY2xhc3M9ImNpcmNsZSIgY3g9IjE2IiBjeT0iMTYiIHI9IjEzIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cGF0aCBjbGFzcz0iY2hlY2ttYXJrIiBkPSJNMTAgMTZsNCA0IDgtOCIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4=";
+    
+    const container = document.getElementById('icons');
+    
+    icons.forEach(icon => {
+      const div = document.createElement('div');
+      div.className = 'icon-set';
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = icon.size;
+      canvas.height = icon.size;
+      
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, icon.size, icon.size);
+        
+        const button = document.createElement('button');
+        button.textContent = `Download ${icon.name}`;
+        button.onclick = () => {
+          canvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = icon.name;
+            a.click();
+            URL.revokeObjectURL(url);
+          });
+        };
+        
+        const label = document.createElement('p');
+        label.textContent = `${icon.name} (${icon.size}x${icon.size}) - ${icon.purpose}`;
+        
+        div.appendChild(label);
+        div.appendChild(canvas);
+        div.appendChild(button);
+      };
+      
+      img.src = svgDataUrl;
+      container.appendChild(div);
+    });
+  </script>
+</body>
+</html>
