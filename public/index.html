@@ -2,9 +2,14 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <base href="/">
     <title>tududi</title>
+    
+    <!-- PWA Primary Meta Tags -->
+    <meta name="description" content="A simple and effective task management application with hierarchical organization and multi-language support">
+    <meta name="application-name" content="tududi">
+    
     <!-- SVG favicon with built-in light/dark mode support -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     
@@ -19,6 +24,30 @@
     
     <!-- Web app manifest for PWA support -->
     <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4a5568" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1e293b" media="(prefers-color-scheme: dark)">
+    
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="tududi">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    
+    <!-- Apple Splash Screens - Optional, can be generated if needed -->
+    <!-- <link rel="apple-touch-startup-image" href="/splash-screen.png"> -->
+    
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#4a5568">
+    <meta name="msapplication-TileImage" content="/icon-192x192.png">
+    <meta name="msapplication-config" content="none">
+    
+    <!-- Disable automatic phone number detection on iOS -->
+    <meta name="format-detection" content="telephone=no">
   </head>
   <body>
     <div id="root"></div>
