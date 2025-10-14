@@ -33,11 +33,14 @@ router.get('/current_user', async (req, res) => {
                     'language',
                     'appearance',
                     'timezone',
+                    'oidc_sub',
+                    'oidc_provider',
                 ],
             });
             if (user) {
                 console.log('✅ User found:', user.email);
                 const admin = await isAdmin(user.uid);
+                const isOidcUser = !!(user.oidc_sub && user.oidc_provider);
                 return res.json({
                     user: {
                         uid: user.uid,
@@ -48,6 +51,7 @@ router.get('/current_user', async (req, res) => {
                         appearance: user.appearance,
                         timezone: user.timezone,
                         is_admin: admin,
+                        is_oidc_user: isOidcUser,
                     },
                 });
             } else {
@@ -126,6 +130,38 @@ router.get('/logout', (req, res) => {
     });
 });
 
+// OIDC Logout - destroys session and redirects to OIDC provider logout
+router.get('/auth/oidc/logout', (req, res) => {
+    const oidcConfig = config.credentials?.oidc;
+    
+    // Destroy the local session
+    req.session.destroy((err) => {
+        if (err) {
+            logError('OIDC Logout error:', err);
+            return res.status(500).json({ error: 'Could not log out' });
+        }
+
+        // If OIDC is configured and has an end_session_endpoint or logout URL
+        if (config.oidcEnabled && oidcConfig) {
+            // Construct the OIDC provider logout URL
+            // For Authelia, this is typically: https://auth.example.com/logout
+            const logoutUrl = oidcConfig.logoutUrl || `${oidcConfig.issuer}/logout`;
+            
+            // Add post_logout_redirect_uri to return user to login page
+            const postLogoutRedirectUri = encodeURIComponent(config.frontendUrl + '/login');
+            const fullLogoutUrl = `${logoutUrl}?post_logout_redirect_uri=${postLogoutRedirectUri}`;
+            
+            console.log(`✅ OIDC logout - redirecting to: ${fullLogoutUrl}`);
+            
+            // Redirect to OIDC provider's logout endpoint
+            return res.redirect(fullLogoutUrl);
+        }
+
+        // Fallback to regular logout if OIDC not configured
+        res.json({ message: 'Logged out successfully' });
+    });
+});
+
 // OIDC Configuration endpoint
 router.get('/auth/oidc/config', (req, res) => {
     res.json({
@@ -199,6 +235,13 @@ router.get(
                 console.log('Session regenerated successfully');
                 console.log('New Session ID:', req.sessionID);
 
+                // Set session userId FIRST before passport login
+                // This ensures the session has the correct user ID immediately
+                req.session.userId = user.id;
+                
+                // Mark that this is an OIDC login for logout handling
+                req.session.isOidcLogin = true;
+                
                 req.logIn(user, (err) => {
                     if (err) {
                         console.error('Session login error:', err);
@@ -207,12 +250,8 @@ router.get(
                         );
                     }
                     
-                    console.log('User logged in via passport, setting session userId');
-                    
-                    // Set session userId explicitly
-                    req.session.userId = user.id;
-                    
-                    console.log('Session after setting userId:', req.session);
+                    console.log('User logged in via passport');
+                    console.log('Session after login:', req.session);
                     
                     req.session.save((err) => {
                         if (err) {

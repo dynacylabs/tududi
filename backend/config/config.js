@@ -33,6 +33,7 @@ const credentials = {
         authorizationUrl: process.env.OIDC_AUTHORIZATION_URL,
         tokenUrl: process.env.OIDC_TOKEN_URL,
         userInfoUrl: process.env.OIDC_USER_INFO_URL,
+        logoutUrl: process.env.OIDC_LOGOUT_URL,
     },
 };
 

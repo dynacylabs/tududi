@@ -99,7 +99,25 @@ const Navbar: React.FC<NavbarProps> = ({
 
     const handleLogout = async () => {
         try {
-            const response = await fetch('/api/logout', {
+            // Determine which logout endpoint to use
+            const logoutEndpoint = currentUser?.is_oidc_user 
+                ? '/api/auth/oidc/logout' 
+                : '/api/logout';
+            
+            console.log(`Logging out via ${logoutEndpoint}`);
+            
+            // Clear localStorage first
+            localStorage.clear();
+            
+            // For OIDC logout, we redirect to the endpoint which will handle
+            // the logout from both tududi and the SSO provider
+            if (currentUser?.is_oidc_user) {
+                window.location.href = logoutEndpoint;
+                return;
+            }
+            
+            // For regular logout, make an API call
+            const response = await fetch(logoutEndpoint, {
                 method: 'GET',
                 credentials: 'include',
             });

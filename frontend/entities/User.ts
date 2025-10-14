@@ -8,4 +8,5 @@ export interface User {
     timezone: string;
     avatarUrl?: string;
     is_admin?: boolean;
+    is_oidc_user?: boolean;
 }
