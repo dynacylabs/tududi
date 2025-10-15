@@ -58,23 +58,24 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Session configuration
-app.use(
-    session({
-        secret: config.secret,
-        store: sessionStore,
-        resave: false,
-        saveUninitialized: false,
-        proxy: true, // Trust the reverse proxy
-        cookie: {
-            httpOnly: true,
-            secure: config.production, // Use secure cookies in production (HTTPS)
-            maxAge: 2592000000, // 30 days
-            sameSite: 'lax', // 'lax' allows cookies on top-level navigation (OIDC redirects)
-            path: '/', // Ensure cookie is available for all paths
-        },
-        name: 'tududi.sid', // Custom session cookie name to avoid conflicts
-    })
-);
+// Dynamic secure cookie handling for reverse proxy scenarios
+const sessionConfig = {
+    secret: config.secret,
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    proxy: true, // Trust the reverse proxy
+    cookie: {
+        httpOnly: true,
+        secure: 'auto', // Automatically set based on X-Forwarded-Proto header
+        maxAge: 2592000000, // 30 days
+        sameSite: 'lax', // 'lax' allows cookies on top-level navigation (OIDC redirects)
+        path: '/', // Ensure cookie is available for all paths
+    },
+    name: 'tududi.sid', // Custom session cookie name to avoid conflicts
+};
+
+app.use(session(sessionConfig));
 
 // Initialize Passport
 initializePassport();
