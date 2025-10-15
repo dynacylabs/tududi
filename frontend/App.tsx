@@ -66,8 +66,21 @@ const App: React.FC = () => {
     };
 
     useEffect(() => {
-        // Fetch user on mount
-        fetchCurrentUser();
+        // If we just landed from OIDC callback, wait a moment for cookies to be set
+        const params = new URLSearchParams(window.location.search);
+        const oidcSuccess = params.get('oidc_success') === 'true';
+        if (oidcSuccess) {
+            // Clear the OIDC flow flag immediately to prevent redirect loop
+            sessionStorage.removeItem('oidc_in_progress');
+            
+            // Remove the param from the URL (optional, for cleanliness)
+            window.history.replaceState({}, document.title, window.location.pathname);
+            setTimeout(() => {
+                fetchCurrentUser();
+            }, 500); // Wait 500ms for cookies to be set
+        } else {
+            fetchCurrentUser();
+        }
     }, []);
 
     // Listen for login events to update user state

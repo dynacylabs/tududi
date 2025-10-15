@@ -19,9 +19,11 @@ router.get('/current_user', async (req, res) => {
     try {
         console.log('=== Current User Check ===');
         console.log('Session ID:', req.sessionID);
-        console.log('Session:', req.session);
+        console.log('Session:', JSON.stringify(req.session, null, 2));
         console.log('Session userId:', req.session?.userId);
         console.log('Cookies:', req.headers.cookie);
+        console.log('User-Agent:', req.headers['user-agent']);
+        console.log('Referer:', req.headers.referer);
         
         if (req.session && req.session.userId) {
             const user = await User.findByPk(req.session.userId, {
@@ -59,6 +61,7 @@ router.get('/current_user', async (req, res) => {
             }
         } else {
             console.log('❌ No session or userId in session');
+            console.log('Session keys:', req.session ? Object.keys(req.session) : 'null');
         }
 
         res.json({ user: null });
@@ -266,7 +269,8 @@ router.get(
                         console.log(`✅ User ${user.email} (ID: ${user.id}) logged in successfully via OIDC`);
                         console.log('Redirecting to:', config.frontendUrl + '/today');
                         
-                        res.redirect(config.frontendUrl + '/today');
+                        // Redirect with a special parameter to clear the OIDC flow flag
+                        res.redirect(config.frontendUrl + '/today?oidc_success=true');
                     });
                 });
             });

@@ -26,6 +26,7 @@ const Login: React.FC = () => {
                 'no_user': 'Unable to retrieve user information.',
                 'session_failed': 'Session error. Please try again.',
                 'session_save_failed': 'Unable to save session. Please try again.',
+                'session_regeneration_failed': 'Unable to regenerate session. Please try again.',
             };
             setError(errorMessages[errorType || ''] || 'Login failed. Please try again.');
         }
@@ -37,15 +38,32 @@ const Login: React.FC = () => {
                 setOidcEnabled(data.enabled);
                 setLoading(false);
                 
+                // Prevent redirect loop: check if we're in an OIDC flow
+                // by checking sessionStorage flag set during redirect
+                const isInOidcFlow = sessionStorage.getItem('oidc_in_progress') === 'true';
+                
+                // Also check if we just came from a successful OIDC callback
+                // This prevents redirect loop during the brief moment before user is fetched
+                const justAuthenticated = document.referrer.includes('/api/auth/oidc/callback') || 
+                                         window.location.search.includes('oidc_success=true');
+                
                 // Only auto-redirect if:
                 // 1. OIDC is enabled
                 // 2. User didn't explicitly request password login
                 // 3. There was no error from previous attempt
-                if (data.enabled && !usePasswordLogin && !hasError) {
+                // 4. We're not already in an OIDC flow (prevent loops)
+                // 5. We didn't just come from a successful OIDC callback
+                if (data.enabled && !usePasswordLogin && !hasError && !isInOidcFlow && !justAuthenticated) {
+                    // Mark that we're starting an OIDC flow
+                    sessionStorage.setItem('oidc_in_progress', 'true');
+                    
                     // Add a small delay to prevent instant redirect loop
                     setTimeout(() => {
                         window.location.href = '/api/auth/oidc/login';
                     }, 500);
+                } else if (isInOidcFlow && (hasError || justAuthenticated)) {
+                    // Clear the flag if there was an error or we just authenticated
+                    sessionStorage.removeItem('oidc_in_progress');
                 }
             })
             .catch((err) => {
