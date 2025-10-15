@@ -225,53 +225,39 @@ router.get(
                 console.log('Destroying old session and creating new one');
             }
 
-            // Regenerate session to prevent session fixation and ensure clean state
-            // This is especially important when switching between SSO users
-            req.session.regenerate((err) => {
+            // Don't regenerate session - it causes cookie issues with redirects
+            // Just set the userId and let passport handle the session
+            req.session.userId = user.id;
+            req.session.isOidcLogin = true;
+            
+            console.log('Session before logIn:', req.session);
+            console.log('Session ID:', req.sessionID);
+            
+            req.logIn(user, (err) => {
                 if (err) {
-                    console.error('Session regeneration error:', err);
-                    return res.redirect(
-                        config.frontendUrl + '/login?password=true&error=session_regeneration_failed'
-                    );
+                    console.error('Session login error:', err);
+                    return res.redirect('/login?password=true&error=session_failed');
                 }
                 
-                console.log('Session regenerated successfully');
-                console.log('New Session ID:', req.sessionID);
-
-                // Set session userId FIRST before passport login
-                // This ensures the session has the correct user ID immediately
-                req.session.userId = user.id;
+                console.log('User logged in via passport');
+                console.log('Session after login:', req.session);
                 
-                // Mark that this is an OIDC login for logout handling
-                req.session.isOidcLogin = true;
-                
-                req.logIn(user, (err) => {
+                req.session.save((err) => {
                     if (err) {
-                        console.error('Session login error:', err);
-                        return res.redirect(
-                            config.frontendUrl + '/login?password=true&error=session_failed'
-                        );
+                        console.error('Session save error:', err);
+                        return res.redirect('/login?password=true&error=session_save_failed');
                     }
                     
-                    console.log('User logged in via passport');
-                    console.log('Session after login:', req.session);
+                    console.log('Session saved successfully');
+                    console.log('Session cookie:', req.session.cookie);
+                    console.log(`✅ User ${user.email} (ID: ${user.id}) logged in successfully via OIDC`);
                     
-                    req.session.save((err) => {
-                        if (err) {
-                            console.error('Session save error:', err);
-                            return res.redirect(
-                                config.frontendUrl + '/login?password=true&error=session_save_failed'
-                            );
-                        }
-                        
-                        console.log('Session saved successfully');
-                        console.log('Session cookie:', req.session.cookie);
-                        console.log(`✅ User ${user.email} (ID: ${user.id}) logged in successfully via OIDC`);
-                        console.log('Redirecting to:', config.frontendUrl + '/today');
-                        
-                        // Redirect with a special parameter to clear the OIDC flow flag
-                        res.redirect(config.frontendUrl + '/today?oidc_success=true');
-                    });
+                    // Use relative redirect to ensure cookie domain matches
+                    // Add oidc_success parameter to signal frontend
+                    const redirectPath = '/today?oidc_success=true';
+                    console.log('Redirecting to:', redirectPath);
+                    
+                    res.redirect(redirectPath);
                 });
             });
         })(req, res, next);
