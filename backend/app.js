@@ -69,8 +69,10 @@ app.use(
             httpOnly: true,
             secure: config.production, // Use secure cookies in production (HTTPS)
             maxAge: 2592000000, // 30 days
-            sameSite: 'lax',
+            sameSite: 'lax', // 'lax' allows cookies on top-level navigation (OIDC redirects)
+            path: '/', // Ensure cookie is available for all paths
         },
+        name: 'tududi.sid', // Custom session cookie name to avoid conflicts
     })
 );
 
