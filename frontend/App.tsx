@@ -54,9 +54,6 @@ const App: React.FC = () => {
             if (data.user) {
                 setCurrentUser(data.user);
                 setUserInStorage(data.user);
-                
-                // Clear OIDC flow flag on successful authentication
-                sessionStorage.removeItem('oidc_in_progress');
             } else {
                 setCurrentUser(null);
                 setUserInStorage(null);
@@ -73,6 +70,9 @@ const App: React.FC = () => {
         const params = new URLSearchParams(window.location.search);
         const oidcSuccess = params.get('oidc_success') === 'true';
         if (oidcSuccess) {
+            // Clear the OIDC flow flag immediately to prevent redirect loop
+            sessionStorage.removeItem('oidc_in_progress');
+            
             // Remove the param from the URL (optional, for cleanliness)
             window.history.replaceState({}, document.title, window.location.pathname);
             setTimeout(() => {
