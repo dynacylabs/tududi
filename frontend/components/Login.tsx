@@ -39,31 +39,31 @@ const Login: React.FC = () => {
                 setLoading(false);
                 
                 // Prevent redirect loop: check if we're in an OIDC flow
-                // by checking sessionStorage flag set during redirect
                 const isInOidcFlow = sessionStorage.getItem('oidc_in_progress') === 'true';
                 
-                // Also check if we just came from a successful OIDC callback
-                // This prevents redirect loop during the brief moment before user is fetched
-                const justAuthenticated = document.referrer.includes('/api/auth/oidc/callback') || 
-                                         window.location.search.includes('oidc_success=true');
+                // Also check if we just came from a successful OIDC callback by looking at:
+                // 1. The referrer (if it includes the callback URL)
+                // 2. A sessionStorage flag we can set on successful login
+                const justAuthenticated = sessionStorage.getItem('oidc_just_authenticated') === 'true';
                 
                 // Only auto-redirect if:
                 // 1. OIDC is enabled
                 // 2. User didn't explicitly request password login
                 // 3. There was no error from previous attempt
                 // 4. We're not already in an OIDC flow (prevent loops)
-                // 5. We didn't just come from a successful OIDC callback
+                // 5. We didn't just come from a successful OIDC authentication
                 if (data.enabled && !usePasswordLogin && !hasError && !isInOidcFlow && !justAuthenticated) {
                     // Mark that we're starting an OIDC flow
                     sessionStorage.setItem('oidc_in_progress', 'true');
                     
-                    // Add a small delay to prevent instant redirect loop
-                    setTimeout(() => {
-                        window.location.href = '/api/auth/oidc/login';
-                    }, 500);
-                } else if (isInOidcFlow && (hasError || justAuthenticated)) {
-                    // Clear the flag if there was an error or we just authenticated
+                    // Redirect to OIDC login
+                    window.location.href = '/api/auth/oidc/login';
+                } else if (isInOidcFlow && hasError) {
+                    // Clear the flag if there was an error
                     sessionStorage.removeItem('oidc_in_progress');
+                } else if (justAuthenticated) {
+                    // Clear the flag after we've checked it
+                    sessionStorage.removeItem('oidc_just_authenticated');
                 }
             })
             .catch((err) => {

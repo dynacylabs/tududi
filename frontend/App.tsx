@@ -73,10 +73,17 @@ const App: React.FC = () => {
             // Clear the OIDC flow flag immediately to prevent redirect loop
             sessionStorage.removeItem('oidc_in_progress');
             
+            // Set a flag so Login component knows we just authenticated
+            sessionStorage.setItem('oidc_just_authenticated', 'true');
+            
             // Remove the param from the URL (optional, for cleanliness)
             window.history.replaceState({}, document.title, window.location.pathname);
-            setTimeout(() => {
-                fetchCurrentUser();
+            
+            // Wait for cookies to be set, then fetch user
+            // Keep loading=true during this time to prevent redirect to /login
+            setTimeout(async () => {
+                await fetchCurrentUser();
+                // fetchCurrentUser already sets loading=false
             }, 500); // Wait 500ms for cookies to be set
         } else {
             fetchCurrentUser();

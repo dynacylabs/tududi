@@ -222,11 +222,48 @@ router.get(
             const existingUserId = req.session?.userId;
             if (existingUserId && existingUserId !== user.id) {
                 console.log(`⚠️ Session switch detected: existing user ID ${existingUserId} → new user ID ${user.id} (${user.email})`);
-                console.log('Destroying old session and creating new one');
+                console.log('Regenerating session for new user');
+                
+                // Regenerate the session to prevent any stale data
+                return req.session.regenerate((regenerateErr) => {
+                    if (regenerateErr) {
+                        console.error('Session regeneration error:', regenerateErr);
+                        return res.redirect('/login?password=true&error=session_regeneration_failed');
+                    }
+                    
+                    console.log('Session regenerated successfully');
+                    
+                    // Set new user in fresh session
+                    req.session.userId = user.id;
+                    req.session.isOidcLogin = true;
+                    
+                    // Log the user in with passport
+                    req.logIn(user, (loginErr) => {
+                        if (loginErr) {
+                            console.error('Passport login error:', loginErr);
+                            return res.redirect('/login?password=true&error=session_failed');
+                        }
+                        
+                        console.log('User logged in via passport after session regeneration');
+                        
+                        // Save the session
+                        req.session.save((saveErr) => {
+                            if (saveErr) {
+                                console.error('Session save error:', saveErr);
+                                return res.redirect('/login?password=true&error=session_save_failed');
+                            }
+                            
+                            console.log(`✅ User ${user.email} (ID: ${user.id}) logged in successfully via OIDC (session switched)`);
+                            
+                            const redirectPath = '/today?oidc_success=true';
+                            console.log('Redirecting to:', redirectPath);
+                            res.redirect(redirectPath);
+                        });
+                    });
+                });
             }
-
-            // Don't regenerate session - it causes cookie issues with redirects
-            // Just set the userId and let passport handle the session
+            
+            // Normal flow - no session switch needed
             req.session.userId = user.id;
             req.session.isOidcLogin = true;
             
