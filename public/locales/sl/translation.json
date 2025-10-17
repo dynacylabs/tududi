@@ -45,7 +45,9 @@
     "nextActions": "Naslednje akcije",
     "inbox": "Prejeto",
     "completed": "Dokončano",
-    "allTasks": "Vse naloge"
+    "allTasks": "Vse naloge",
+    "views": "Pogledi",
+    "aiAssistant": "AI Pomočnik"
   },
   "navigation": {
     "home": "Domov",

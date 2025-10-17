@@ -45,7 +45,9 @@
     "nextActions": "Nästa åtgärder",
     "inbox": "Inkorg",
     "completed": "Slutförda",
-    "allTasks": "Alla uppgifter"
+    "allTasks": "Alla uppgifter",
+    "views": "Vy",
+    "aiAssistant": "AI-assistent"
   },
   "navigation": {
     "home": "Hem",

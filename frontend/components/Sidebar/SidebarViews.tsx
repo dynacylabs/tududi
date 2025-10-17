@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Location } from 'react-router-dom';
 import { QueueListIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { useTranslation } from 'react-i18next';
 import {
     DndContext,
     closestCenter,
@@ -101,6 +102,7 @@ const SidebarViews: React.FC<SidebarViewsProps> = ({
     handleNavClick,
     location,
 }) => {
+    const { t } = useTranslation();
     const [pinnedViews, setPinnedViews] = useState<View[]>([]);
     const [sidebarSettings, setSidebarSettings] = useState<{
         pinnedViewsOrder: string[];
@@ -266,14 +268,14 @@ const SidebarViews: React.FC<SidebarViewsProps> = ({
                     onClick={() =>
                         handleNavClick(
                             '/views',
-                            'Views',
+                            t('sidebar.views'),
                             <QueueListIcon className="h-5 w-5 mr-2" />
                         )
                     }
                 >
                     <span className="flex items-center">
                         <QueueListIcon className="h-5 w-5 mr-2" />
-                        Views
+                        {t('sidebar.views')}
                     </span>
                 </li>
 

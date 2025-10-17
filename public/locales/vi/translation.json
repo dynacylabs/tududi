@@ -45,7 +45,9 @@
     "addProjectTitle": "Thêm Dự án",
     "addNoteAriaLabel": "Thêm Ghi chú",
     "addNoteTitle": "Thêm Ghi chú",
-    "createNew": "Tạo mới"
+    "createNew": "Tạo mới",
+    "views": "Chế độ xem",
+    "aiAssistant": "Trợ lý AI"
   },
   "navigation": {
     "home": "Trang chủ",

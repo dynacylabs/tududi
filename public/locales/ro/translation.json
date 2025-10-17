@@ -45,7 +45,9 @@
     "addProjectTitle": "Adaugă Proiect",
     "addNoteAriaLabel": "Adaugă Notă",
     "addNoteTitle": "Adaugă Notă",
-    "createNew": "Creează Nou"
+    "createNew": "Creează Nou",
+    "views": "Vederi",
+    "aiAssistant": "Asistent AI"
   },
   "navigation": {
     "home": "Acasă",

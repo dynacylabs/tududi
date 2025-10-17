@@ -45,7 +45,9 @@
     "addProjectTitle": "Voeg Project toe",
     "addNoteAriaLabel": "Voeg Notitie toe",
     "addNoteTitle": "Voeg Notitie toe",
-    "createNew": "Maak Nieuw"
+    "createNew": "Maak Nieuw",
+    "views": "Weergaven",
+    "aiAssistant": "AI Assistent"
   },
   "navigation": {
     "home": "Home",

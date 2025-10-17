@@ -45,7 +45,9 @@
     "addProjectTitle": "Tambahkan Proyek",
     "addNoteAriaLabel": "Tambahkan Catatan",
     "addNoteTitle": "Tambahkan Catatan",
-    "createNew": "Buat Baru"
+    "createNew": "Buat Baru",
+    "views": "Tampilan",
+    "aiAssistant": "Asisten AI"
   },
   "navigation": {
     "home": "Beranda",

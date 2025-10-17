@@ -33,6 +33,8 @@ const Role = require('./role')(sequelize);
 const Action = require('./action')(sequelize);
 const Permission = require('./permission')(sequelize);
 const View = require('./view')(sequelize);
+const Conversation = require('./conversation')(sequelize);
+const ChatMessage = require('./chat_message')(sequelize);
 
 // Define associations
 User.hasMany(Area, { foreignKey: 'user_id' });
@@ -139,6 +141,12 @@ Action.belongsTo(User, { foreignKey: 'target_user_id', as: 'Target' });
 User.hasMany(View, { foreignKey: 'user_id' });
 View.belongsTo(User, { foreignKey: 'user_id' });
 
+// Chat associations
+User.hasMany(Conversation, { foreignKey: 'user_id' });
+Conversation.belongsTo(User, { foreignKey: 'user_id' });
+Conversation.hasMany(ChatMessage, { foreignKey: 'conversation_id' });
+ChatMessage.belongsTo(Conversation, { foreignKey: 'conversation_id' });
+
 module.exports = {
     sequelize,
     User,
@@ -153,4 +161,6 @@ module.exports = {
     Action,
     Permission,
     View,
+    Conversation,
+    ChatMessage,
 };

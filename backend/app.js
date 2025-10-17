@@ -119,6 +119,7 @@ app.use('/api', requireAuth, require('./routes/quotes'));
 app.use('/api', requireAuth, require('./routes/task-events'));
 app.use('/api/search', requireAuth, require('./routes/search'));
 app.use('/api/views', requireAuth, require('./routes/views'));
+app.use('/api', requireAuth, require('./routes/chat'));
 
 // SPA fallback
 app.get('*', (req, res) => {

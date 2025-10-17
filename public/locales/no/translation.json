@@ -45,7 +45,9 @@
     "addProjectTitle": "Legg til prosjekt",
     "addNoteAriaLabel": "Legg til notat",
     "addNoteTitle": "Legg til notat",
-    "createNew": "Opprett ny"
+    "createNew": "Opprett ny",
+    "views": "Visninger",
+    "aiAssistant": "AI Assistent"
   },
   "navigation": {
     "home": "Hjem",

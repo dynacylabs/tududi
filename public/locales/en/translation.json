@@ -29,6 +29,8 @@
     "settings": "Settings",
     "areas": "Areas",
     "tags": "Tags",
+    "views": "Views",
+    "aiAssistant": "AI Assistant",
     "addAreaAriaLabel": "Add Area",
     "addAreaTitle": "Add Area",
     "addTagAriaLabel": "Add Tag",

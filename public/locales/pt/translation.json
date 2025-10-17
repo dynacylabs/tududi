@@ -45,7 +45,9 @@
     "addProjectTitle": "Adicionar Projeto",
     "addNoteAriaLabel": "Adicionar Nota",
     "addNoteTitle": "Adicionar Nota",
-    "createNew": "Criar Novo"
+    "createNew": "Criar Novo",
+    "views": "Visualizações",
+    "aiAssistant": "Assistente de IA"
   },
   "navigation": {
     "home": "Início",

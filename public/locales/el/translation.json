@@ -45,7 +45,9 @@
     "addProjectTitle": "Προσθήκη Έργου",
     "addNoteAriaLabel": "Προσθήκη Σημείωσης",
     "addNoteTitle": "Προσθήκη Σημείωσης",
-    "createNew": "Δημιουργία Νέου"
+    "createNew": "Δημιουργία Νέου",
+    "views": "Προβολές",
+    "aiAssistant": "Βοηθός AI"
   },
   "navigation": {
     "home": "Αρχική",

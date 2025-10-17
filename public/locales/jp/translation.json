@@ -45,7 +45,9 @@
     "addProjectTitle": "プロジェクトを追加",
     "addNoteAriaLabel": "ノートを追加",
     "addNoteTitle": "ノートを追加",
-    "createNew": "新規作成"
+    "createNew": "新規作成",
+    "views": "ビュー",
+    "aiAssistant": "AIアシスタント"
   },
   "navigation": {
     "home": "ホーム",

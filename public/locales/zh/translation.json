@@ -45,7 +45,9 @@
     "addProjectTitle": "添加项目",
     "addNoteAriaLabel": "添加备注",
     "addNoteTitle": "添加备注",
-    "createNew": "创建新项目"
+    "createNew": "创建新项目",
+    "views": "视图",
+    "aiAssistant": "人工智能助手"
   },
   "navigation": {
     "home": "首页",

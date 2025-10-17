@@ -45,7 +45,9 @@
     "addProjectTitle": "إضافة مشروع",
     "addNoteAriaLabel": "إضافة ملاحظة",
     "addNoteTitle": "إضافة ملاحظة",
-    "createNew": "إنشاء جديد"
+    "createNew": "إنشاء جديد",
+    "views": "عرض",
+    "aiAssistant": "مساعد الذكاء الاصطناعي"
   },
   "navigation": {
     "home": "الرئيسية",

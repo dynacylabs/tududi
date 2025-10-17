@@ -45,7 +45,9 @@
     "addProjectTitle": "Lisää projekti",
     "addNoteAriaLabel": "Lisää muistiinpano",
     "addNoteTitle": "Lisää muistiinpano",
-    "createNew": "Luo uusi"
+    "createNew": "Luo uusi",
+    "views": "Näkymät",
+    "aiAssistant": "AI-avustaja"
   },
   "navigation": {
     "home": "Koti",

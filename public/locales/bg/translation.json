@@ -45,7 +45,9 @@
     "addProjectTitle": "Добави проект",
     "addNoteAriaLabel": "Добави бележка",
     "addNoteTitle": "Добави бележка",
-    "createNew": "Създай ново"
+    "createNew": "Създай ново",
+    "views": "Прегледи",
+    "aiAssistant": "AI Асистент"
   },
   "navigation": {
     "home": "Начало",

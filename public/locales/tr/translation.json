@@ -45,7 +45,9 @@
     "addProjectTitle": "Proje Ekle",
     "addNoteAriaLabel": "Not Ekle",
     "addNoteTitle": "Not Ekle",
-    "createNew": "Yeni Oluştur"
+    "createNew": "Yeni Oluştur",
+    "views": "Görünümler",
+    "aiAssistant": "Yapay Zeka Asistanı"
   },
   "navigation": {
     "home": "Ana Sayfa",
