@@ -42,10 +42,14 @@ const Login: React.FC = () => {
                 // by checking sessionStorage flag set during redirect
                 const isInOidcFlow = sessionStorage.getItem('oidc_in_progress') === 'true';
                 
-                // Also check if we just came from a successful OIDC callback
-                // This prevents redirect loop during the brief moment before user is fetched
-                const justAuthenticated = document.referrer.includes('/api/auth/oidc/callback') || 
-                                         window.location.search.includes('oidc_success=true');
+                // Check if we just completed OIDC authentication
+                // This flag is set in App.tsx when oidc_success=true is detected
+                const justAuthenticated = sessionStorage.getItem('oidc_just_authenticated') === 'true';
+                
+                // Clear the just authenticated flag immediately
+                if (justAuthenticated) {
+                    sessionStorage.removeItem('oidc_just_authenticated');
+                }
                 
                 // Only auto-redirect if:
                 // 1. OIDC is enabled
@@ -57,10 +61,8 @@ const Login: React.FC = () => {
                     // Mark that we're starting an OIDC flow
                     sessionStorage.setItem('oidc_in_progress', 'true');
                     
-                    // Add a small delay to prevent instant redirect loop
-                    setTimeout(() => {
-                        window.location.href = '/api/auth/oidc/login';
-                    }, 500);
+                    // Redirect immediately to OIDC login
+                    window.location.href = '/api/auth/oidc/login';
                 } else if (isInOidcFlow && (hasError || justAuthenticated)) {
                     // Clear the flag if there was an error or we just authenticated
                     sessionStorage.removeItem('oidc_in_progress');

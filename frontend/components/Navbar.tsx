@@ -97,8 +97,10 @@ const Navbar: React.FC<NavbarProps> = ({
     const handleLogout = async () => {
         try {
             // Determine which logout endpoint to use
+            // For OIDC users, use local logout by default to avoid logging out of the SSO provider
+            // This allows users to switch accounts without fully logging out of Authelia
             const logoutEndpoint = currentUser?.is_oidc_user 
-                ? '/api/auth/oidc/logout' 
+                ? '/api/auth/oidc/logout/local'  // Local logout only
                 : '/api/logout';
             
             console.log(`Logging out via ${logoutEndpoint}`);
@@ -106,8 +108,8 @@ const Navbar: React.FC<NavbarProps> = ({
             // Clear localStorage first
             localStorage.clear();
             
-            // For OIDC logout, we redirect to the endpoint which will handle
-            // the logout from both tududi and the SSO provider
+            // For OIDC local logout, redirect to the endpoint which will handle
+            // clearing the Tududi session and redirecting to login
             if (currentUser?.is_oidc_user) {
                 window.location.href = logoutEndpoint;
                 return;

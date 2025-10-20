@@ -165,6 +165,24 @@ router.get('/auth/oidc/logout', (req, res) => {
     });
 });
 
+// OIDC Local Logout - only destroys local session without logging out of OIDC provider
+// This is useful when user wants to switch accounts without logging out of the SSO provider
+router.get('/auth/oidc/logout/local', (req, res) => {
+    console.log('⚠️ OIDC local logout - clearing Tududi session only');
+    
+    // Destroy the local session only
+    req.session.destroy((err) => {
+        if (err) {
+            logError('OIDC Local Logout error:', err);
+            return res.status(500).json({ error: 'Could not log out' });
+        }
+
+        console.log('✅ Local session cleared, redirecting to login');
+        // Redirect to login page, which will trigger OIDC re-authentication
+        res.redirect(config.frontendUrl + '/login?oidc_local_logout=true');
+    });
+});
+
 // OIDC Configuration endpoint
 router.get('/auth/oidc/config', (req, res) => {
     res.json({
