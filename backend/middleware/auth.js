@@ -15,11 +15,14 @@ const requireAuth = async (req, res, next) => {
             return next();
         }
 
-        if (!req.session || !req.session.userId) {
+        // Check both session.userId (regular login) and passport.user (OIDC login)
+        const userId = req.session?.userId || req.session?.passport?.user;
+        
+        if (!req.session || !userId) {
             return res.status(401).json({ error: 'Authentication required' });
         }
 
-        const user = await User.findByPk(req.session.userId);
+        const user = await User.findByPk(userId);
         if (!user) {
             req.session.destroy();
             return res.status(401).json({ error: 'User not found' });

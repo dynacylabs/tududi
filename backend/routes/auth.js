@@ -22,11 +22,18 @@ router.get('/current_user', async (req, res) => {
         console.log('Session:', JSON.stringify(req.session, null, 2));
         console.log('Session userId:', req.session?.userId);
         console.log('Cookies:', req.headers.cookie);
+        console.log('Request protocol:', req.protocol);
+        console.log('Request secure:', req.secure);
+        console.log('X-Forwarded-Proto:', req.headers['x-forwarded-proto']);
+        console.log('X-Forwarded-Host:', req.headers['x-forwarded-host']);
         console.log('User-Agent:', req.headers['user-agent']);
         console.log('Referer:', req.headers.referer);
         
-        if (req.session && req.session.userId) {
-            const user = await User.findByPk(req.session.userId, {
+        // Check both session.userId (regular login) and passport.user (OIDC login)
+        const userId = req.session?.userId || req.session?.passport?.user;
+        
+        if (userId) {
+            const user = await User.findByPk(userId, {
                 attributes: [
                     'uid',
                     'email',
@@ -40,7 +47,7 @@ router.get('/current_user', async (req, res) => {
                 ],
             });
             if (user) {
-                console.log('✅ User found:', user.email);
+                console.log('✅ User found:', user.email, `(ID: ${userId})`);
                 const admin = await isAdmin(user.uid);
                 const isOidcUser = !!(user.oidc_sub && user.oidc_provider);
                 return res.json({
@@ -57,7 +64,7 @@ router.get('/current_user', async (req, res) => {
                     },
                 });
             } else {
-                console.log('❌ User not found in database for userId:', req.session.userId);
+                console.log('❌ User not found in database for userId:', userId);
             }
         } else {
             console.log('❌ No session or userId in session');
@@ -284,8 +291,20 @@ router.get(
                         
                         console.log('Session saved successfully');
                         console.log('Session cookie:', req.session.cookie);
+                        console.log('Session cookie settings:', {
+                            secure: req.session.cookie.secure,
+                            httpOnly: req.session.cookie.httpOnly,
+                            sameSite: req.session.cookie.sameSite,
+                            domain: req.session.cookie.domain,
+                            path: req.session.cookie.path,
+                        });
+                        console.log('Request headers:', {
+                            'x-forwarded-proto': req.headers['x-forwarded-proto'],
+                            'x-forwarded-host': req.headers['x-forwarded-host'],
+                            'host': req.headers.host,
+                        });
                         console.log(`✅ User ${user.email} (ID: ${user.id}) logged in successfully via OIDC`);
-                        console.log('Redirecting to:', config.frontendUrl + '/today');
+                        console.log('Redirecting to:', config.frontendUrl + '/today?oidc_success=true');
                         
                         // Redirect with a special parameter to clear the OIDC flow flag
                         res.redirect(config.frontendUrl + '/today?oidc_success=true');

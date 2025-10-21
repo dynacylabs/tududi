@@ -67,7 +67,7 @@ app.use(
         proxy: true, // Trust the reverse proxy
         cookie: {
             httpOnly: true,
-            secure: config.production, // Use secure cookies in production (HTTPS)
+            secure: 'auto', // Auto-detect HTTPS from X-Forwarded-Proto header
             maxAge: 2592000000, // 30 days
             sameSite: 'lax', // 'lax' allows cookies on top-level navigation (OIDC redirects)
             path: '/', // Ensure cookie is available for all paths
