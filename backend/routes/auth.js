@@ -26,6 +26,7 @@ router.get('/current_user', async (req, res) => {
         console.log('Request secure:', req.secure);
         console.log('X-Forwarded-Proto:', req.headers['x-forwarded-proto']);
         console.log('X-Forwarded-Host:', req.headers['x-forwarded-host']);
+        console.log('Remote-User (from Authelia):', req.headers['remote-user']);
         console.log('User-Agent:', req.headers['user-agent']);
         console.log('Referer:', req.headers.referer);
         
@@ -48,8 +49,41 @@ router.get('/current_user', async (req, res) => {
             });
             if (user) {
                 console.log('✅ User found:', user.email, `(ID: ${userId})`);
-                const admin = await isAdmin(user.uid);
+                
+                // CRITICAL: If this is an OIDC user and Authelia is providing a Remote-User header,
+                // verify that the authenticated SSO user matches the session user
+                const remoteUser = req.headers['remote-user'];
                 const isOidcUser = !!(user.oidc_sub && user.oidc_provider);
+                
+                if (isOidcUser && remoteUser) {
+                    console.log(`🔍 SSO Validation: Session user="${user.email}" vs Authelia user="${remoteUser}"`);
+                    
+                    // Check if the remote user matches the session user
+                    // Remote-User from Authelia might be username or email
+                    const remoteUserMatches = 
+                        user.email === remoteUser || 
+                        user.name === remoteUser ||
+                        user.email.split('@')[0] === remoteUser; // Check username part
+                    
+                    if (!remoteUserMatches) {
+                        console.log(`⚠️ SSO user mismatch detected! Session has ${user.email} but Authelia authenticated ${remoteUser}`);
+                        console.log('🔄 Clearing stale session - user needs to re-authenticate');
+                        
+                        // Destroy the stale session
+                        req.session.destroy((err) => {
+                            if (err) {
+                                console.error('Error destroying session:', err);
+                            }
+                        });
+                        
+                        // Return null user to force re-authentication
+                        return res.json({ user: null });
+                    }
+                    
+                    console.log('✅ SSO user validated - session matches authenticated user');
+                }
+                
+                const admin = await isAdmin(user.uid);
                 return res.json({
                     user: {
                         uid: user.uid,

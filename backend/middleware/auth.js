@@ -27,6 +27,25 @@ const requireAuth = async (req, res, next) => {
             req.session.destroy();
             return res.status(401).json({ error: 'User not found' });
         }
+        
+        // CRITICAL: If this is an OIDC user and Authelia is providing a Remote-User header,
+        // verify that the authenticated SSO user matches the session user
+        const remoteUser = req.headers['remote-user'];
+        const isOidcUser = !!(user.oidc_sub && user.oidc_provider);
+        
+        if (isOidcUser && remoteUser) {
+            // Check if the remote user matches the session user
+            const remoteUserMatches = 
+                user.email === remoteUser || 
+                user.name === remoteUser ||
+                user.email.split('@')[0] === remoteUser;
+            
+            if (!remoteUserMatches) {
+                console.log(`⚠️ [Auth Middleware] SSO user mismatch! Session: ${user.email}, Authelia: ${remoteUser}`);
+                req.session.destroy();
+                return res.status(401).json({ error: 'Authentication required' });
+            }
+        }
 
         req.currentUser = user;
         next();
