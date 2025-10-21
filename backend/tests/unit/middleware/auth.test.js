@@ -8,6 +8,7 @@ describe('Auth Middleware', () => {
         req = {
             path: '/api/tasks',
             session: {},
+            headers: {}, // Add headers object for SSO validation
         };
         res = {
             status: jest.fn().mockReturnThis(),
@@ -105,6 +106,58 @@ describe('Auth Middleware', () => {
         expect(req.currentUser.email).toBe(user.email);
         expect(next).toHaveBeenCalled();
         expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it('should handle OIDC user with matching Remote-User header', async () => {
+        const bcrypt = require('bcrypt');
+        const user = await User.create({
+            email: 'oidc@example.com',
+            password_digest: await bcrypt.hash('password123', 10),
+            oidc_sub: 'oidc-sub-123',
+            oidc_provider: 'https://auth.example.com',
+        });
+
+        req.session = {
+            passport: { user: user.id },
+        };
+        req.headers = {
+            'remote-user': 'oidc@example.com', // Matching email
+        };
+
+        await requireAuth(req, res, next);
+
+        expect(req.currentUser).toBeDefined();
+        expect(req.currentUser.id).toBe(user.id);
+        expect(req.currentUser.email).toBe(user.email);
+        expect(next).toHaveBeenCalled();
+        expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it('should reject OIDC user with mismatched Remote-User header', async () => {
+        const bcrypt = require('bcrypt');
+        const user = await User.create({
+            email: 'oidc@example.com',
+            password_digest: await bcrypt.hash('password123', 10),
+            oidc_sub: 'oidc-sub-123',
+            oidc_provider: 'https://auth.example.com',
+        });
+
+        req.session = {
+            passport: { user: user.id },
+            destroy: jest.fn(),
+        };
+        req.headers = {
+            'remote-user': 'different-user@example.com', // Different user!
+        };
+
+        await requireAuth(req, res, next);
+
+        expect(req.session.destroy).toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(res.json).toHaveBeenCalledWith({
+            error: 'Authentication required',
+        });
+        expect(next).not.toHaveBeenCalled();
     });
 
     it('should handle database errors', async () => {
