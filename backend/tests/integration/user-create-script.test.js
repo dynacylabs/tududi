@@ -33,7 +33,8 @@ describe('User Create Script', () => {
             });
 
             child.on('error', (error) => {
-                reject(error);
+                // Avoid circular reference error by converting to plain object
+                reject(new Error(error.message || String(error)));
             });
         });
     };
