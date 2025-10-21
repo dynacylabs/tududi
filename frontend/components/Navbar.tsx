@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { clearCurrentUser } from '../utils/userUtils';
 import {
     UserIcon,
     Bars3Icon,
@@ -105,8 +106,11 @@ const Navbar: React.FC<NavbarProps> = ({
             
             console.log(`Logging out via ${logoutEndpoint}`);
             
-            // Clear localStorage first
-            localStorage.clear();
+            // CRITICAL: Clear all user state IMMEDIATELY before making API call
+            // This prevents any race conditions where the UI might still show User A
+            setCurrentUser(null);
+            clearCurrentUser(); // Clear localStorage user data
+            localStorage.clear(); // Clear all other localStorage data
             
             // For OIDC local logout, redirect to the endpoint which will handle
             // clearing the Tududi session and redirecting to login
@@ -122,13 +126,16 @@ const Navbar: React.FC<NavbarProps> = ({
             });
 
             if (response.ok) {
-                setCurrentUser(null);
                 navigate('/login');
             } else {
                 console.error('Logout failed:', await response.json());
+                // Still navigate to login even if API call fails
+                navigate('/login');
             }
         } catch (error) {
             console.error('Error during logout:', error);
+            // Still navigate to login even if there's an error
+            navigate('/login');
         }
     };
 

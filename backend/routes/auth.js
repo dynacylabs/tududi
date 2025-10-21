@@ -170,6 +170,14 @@ router.get('/logout', (req, res) => {
             return res.status(500).json({ error: 'Could not log out' });
         }
 
+        // Clear the session cookie to ensure complete logout
+        res.clearCookie('connect.sid', {
+            path: '/',
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax'
+        });
+
         res.json({ message: 'Logged out successfully' });
     });
 });
@@ -184,6 +192,14 @@ router.get('/auth/oidc/logout', (req, res) => {
             logError('OIDC Logout error:', err);
             return res.status(500).json({ error: 'Could not log out' });
         }
+
+        // Clear the session cookie to ensure complete logout
+        res.clearCookie('connect.sid', {
+            path: '/',
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax'
+        });
 
         // If OIDC is configured and has an end_session_endpoint or logout URL
         if (config.oidcEnabled && oidcConfig) {
@@ -217,6 +233,14 @@ router.get('/auth/oidc/logout/local', (req, res) => {
             logError('OIDC Local Logout error:', err);
             return res.status(500).json({ error: 'Could not log out' });
         }
+
+        // Clear the session cookie to ensure complete logout
+        res.clearCookie('connect.sid', {
+            path: '/',
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax'
+        });
 
         console.log('✅ Local session cleared, redirecting to login');
         // Redirect to login page, which will trigger OIDC re-authentication
