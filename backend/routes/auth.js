@@ -57,37 +57,62 @@ router.get('/current_user', async (req, res) => {
             if (user) {
                 console.log('✅ User found:', user.email, `(ID: ${userId})`);
                 
-                // CRITICAL: If this is an OIDC user and Authelia is providing a Remote-User header,
-                // verify that the authenticated SSO user matches the session user
+                // CRITICAL: If this is an OIDC user, verify SSO state
                 const remoteUser = req.headers['remote-user'];
                 const isOidcUser = !!(user.oidc_sub && user.oidc_provider);
                 
-                if (isOidcUser && remoteUser) {
-                    console.log(`🔍 SSO Validation: Session user="${user.email}" vs Authelia user="${remoteUser}"`);
+                if (isOidcUser) {
+                    console.log(`🔍 SSO Validation Check:`);
+                    console.log(`   Session user: ${user.email} (ID: ${userId})`);
+                    console.log(`   Remote-User header: ${remoteUser || '(not provided)'}`);
+                    console.log(`   Is OIDC user: ${isOidcUser}`);
                     
-                    // Check if the remote user matches the session user
-                    // Remote-User from Authelia might be username or email
-                    const remoteUserMatches = 
-                        user.email === remoteUser || 
-                        user.name === remoteUser ||
-                        user.email.split('@')[0] === remoteUser; // Check username part
-                    
-                    if (!remoteUserMatches) {
-                        console.log(`⚠️ SSO user mismatch detected! Session has ${user.email} but Authelia authenticated ${remoteUser}`);
-                        console.log('🔄 Clearing stale session - user needs to re-authenticate');
+                    // If Remote-User header is provided, validate it matches
+                    if (remoteUser) {
+                        // Check if the remote user matches the session user
+                        // Remote-User from Authelia might be username or email
+                        const remoteUserMatches = 
+                            user.email === remoteUser || 
+                            user.name === remoteUser ||
+                            user.email.split('@')[0] === remoteUser; // Check username part
                         
-                        // Destroy the stale session
-                        req.session.destroy((err) => {
-                            if (err) {
-                                console.error('Error destroying session:', err);
-                            }
-                        });
+                        if (!remoteUserMatches) {
+                            console.log(`⚠️ SSO USER MISMATCH DETECTED!`);
+                            console.log(`   Tududi session: ${user.email}`);
+                            console.log(`   Authelia authenticated: ${remoteUser}`);
+                            console.log(`🔄 Clearing stale session - forcing re-authentication`);
+                            
+                            // Clear the session cookie immediately
+                            const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+                            res.clearCookie('tududi.sid', {
+                                path: '/',
+                                httpOnly: true,
+                                secure: isSecure,
+                                sameSite: 'lax'
+                            });
+                            
+                            // Destroy the stale session
+                            req.session.destroy((err) => {
+                                if (err) {
+                                    console.error('Error destroying session:', err);
+                                }
+                            });
+                            
+                            // Return null user to force re-authentication
+                            return res.json({ user: null });
+                        }
                         
-                        // Return null user to force re-authentication
-                        return res.json({ user: null });
+                        console.log('✅ SSO user validated - session matches authenticated user');
+                    } else {
+                        // Remote-User header not provided - this might mean:
+                        // 1. User logged out of Authelia (SSO) but Tududi session still exists
+                        // 2. Nginx is not configured to pass the header
+                        console.log(`⚠️ WARNING: OIDC user but no Remote-User header provided`);
+                        console.log(`   This may indicate the user is not authenticated at the SSO level`);
+                        console.log(`   or Nginx is not passing the Remote-User header`);
+                        // We don't destroy the session here because it might be a configuration issue
+                        // But we log it for debugging
                     }
-                    
-                    console.log('✅ SSO user validated - session matches authenticated user');
                 }
                 
                 const admin = await isAdmin(user.uid);
@@ -157,6 +182,11 @@ router.post('/login', async (req, res) => {
                 return res.status(500).json({ error: 'Internal server error' });
             }
 
+            console.log('🔄 Session regenerated for new login');
+            console.log('   Old Session ID:', oldSessionData?.id);
+            console.log('   New Session ID:', req.sessionID);
+            console.log('   User:', user.email);
+
             // Set the new user ID in the regenerated session
             req.session.userId = user.id;
 
@@ -203,13 +233,16 @@ router.get('/logout', (req, res) => {
         }
 
         // Clear the session cookie to ensure complete logout
+        // Must match the exact cookie attributes used when setting the cookie
+        const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
         res.clearCookie('tududi.sid', {
             path: '/',
             httpOnly: true,
-            secure: 'auto',
+            secure: isSecure,
             sameSite: 'lax'
         });
 
+        console.log(`✅ Logout complete - Cookie cleared (secure: ${isSecure})`);
         res.json({ message: 'Logged out successfully' });
     });
 });
@@ -226,10 +259,12 @@ router.get('/auth/oidc/logout', (req, res) => {
         }
 
         // Clear the session cookie to ensure complete logout
+        // Must match the exact cookie attributes used when setting the cookie
+        const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
         res.clearCookie('tududi.sid', {
             path: '/',
             httpOnly: true,
-            secure: 'auto',
+            secure: isSecure,
             sameSite: 'lax'
         });
 
@@ -267,10 +302,12 @@ router.get('/auth/oidc/logout/local', (req, res) => {
         }
 
         // Clear the session cookie to ensure complete logout
+        // Must match the exact cookie attributes used when setting the cookie
+        const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
         res.clearCookie('tududi.sid', {
             path: '/',
             httpOnly: true,
-            secure: 'auto',
+            secure: isSecure,
             sameSite: 'lax'
         });
 

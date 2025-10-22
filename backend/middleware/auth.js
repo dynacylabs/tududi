@@ -28,22 +28,47 @@ const requireAuth = async (req, res, next) => {
             return res.status(401).json({ error: 'User not found' });
         }
         
-        // CRITICAL: If this is an OIDC user and Authelia is providing a Remote-User header,
-        // verify that the authenticated SSO user matches the session user
+        // CRITICAL: If this is an OIDC user, verify SSO authentication state
         const remoteUser = req.headers['remote-user'];
         const isOidcUser = !!(user.oidc_sub && user.oidc_provider);
         
-        if (isOidcUser && remoteUser) {
-            // Check if the remote user matches the session user
-            const remoteUserMatches = 
-                user.email === remoteUser || 
-                user.name === remoteUser ||
-                user.email.split('@')[0] === remoteUser;
-            
-            if (!remoteUserMatches) {
-                console.log(`⚠️ [Auth Middleware] SSO user mismatch! Session: ${user.email}, Authelia: ${remoteUser}`);
-                req.session.destroy();
-                return res.status(401).json({ error: 'Authentication required' });
+        if (isOidcUser) {
+            // If Remote-User header is provided by Authelia, validate it matches the session user
+            if (remoteUser) {
+                // Check if the remote user matches the session user
+                // Remote-User from Authelia might be username or email
+                const remoteUserMatches = 
+                    user.email === remoteUser || 
+                    user.name === remoteUser ||
+                    user.email.split('@')[0] === remoteUser;
+                
+                if (!remoteUserMatches) {
+                    console.log(`⚠️ [Auth Middleware] SSO USER MISMATCH DETECTED!`);
+                    console.log(`   Path: ${req.path}`);
+                    console.log(`   Tududi session: ${user.email} (ID: ${userId})`);
+                    console.log(`   Authelia authenticated: ${remoteUser}`);
+                    console.log(`   🔄 Destroying stale session`);
+                    
+                    // Clear the session cookie immediately
+                    const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+                    res.clearCookie('tududi.sid', {
+                        path: '/',
+                        httpOnly: true,
+                        secure: isSecure,
+                        sameSite: 'lax'
+                    });
+                    
+                    req.session.destroy((err) => {
+                        if (err) {
+                            console.error('Error destroying session:', err);
+                        }
+                    });
+                    
+                    return res.status(401).json({ 
+                        error: 'Authentication required',
+                        reason: 'sso_user_mismatch'
+                    });
+                }
             }
         }
 
