@@ -17,6 +17,13 @@ router.get('/version', (req, res) => {
 // Get current user
 router.get('/current_user', async (req, res) => {
     try {
+        // Prevent caching of user data
+        res.set({
+            'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        });
+
         console.log('=== Current User Check ===');
         console.log('Session ID:', req.sessionID);
         console.log('Session:', JSON.stringify(req.session, null, 2));
@@ -115,6 +122,13 @@ router.get('/current_user', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
     try {
+        // Prevent caching of login response
+        res.set({
+            'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        });
+
         const { email, password } = req.body;
 
         if (!email || !password) {
@@ -134,27 +148,38 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ errors: ['Invalid credentials'] });
         }
 
-        req.session.userId = user.id;
+        // Regenerate session to prevent session fixation attacks
+        // and ensure a completely fresh session for the new user
+        const oldSessionData = req.session;
+        req.session.regenerate((err) => {
+            if (err) {
+                logError('Session regeneration error:', err);
+                return res.status(500).json({ error: 'Internal server error' });
+            }
 
-        await new Promise((resolve, reject) => {
-            req.session.save((err) => {
-                if (err) reject(err);
-                else resolve();
+            // Set the new user ID in the regenerated session
+            req.session.userId = user.id;
+
+            req.session.save(async (err) => {
+                if (err) {
+                    logError('Session save error:', err);
+                    return res.status(500).json({ error: 'Internal server error' });
+                }
+
+                const admin = await isAdmin(user.uid);
+                res.json({
+                    user: {
+                        uid: user.uid,
+                        email: user.email,
+                        name: user.name,
+                        surname: user.surname,
+                        language: user.language,
+                        appearance: user.appearance,
+                        timezone: user.timezone,
+                        is_admin: admin,
+                    },
+                });
             });
-        });
-
-        const admin = await isAdmin(user.uid);
-        res.json({
-            user: {
-                uid: user.uid,
-                email: user.email,
-                name: user.name,
-                surname: user.surname,
-                language: user.language,
-                appearance: user.appearance,
-                timezone: user.timezone,
-                is_admin: admin,
-            },
         });
     } catch (error) {
         logError('Login error:', error);
@@ -164,6 +189,13 @@ router.post('/login', async (req, res) => {
 
 // Logout
 router.get('/logout', (req, res) => {
+    // Prevent caching of logout response
+    res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    });
+
     req.session.destroy((err) => {
         if (err) {
             logError('Logout error:', err);
@@ -171,10 +203,10 @@ router.get('/logout', (req, res) => {
         }
 
         // Clear the session cookie to ensure complete logout
-        res.clearCookie('connect.sid', {
+        res.clearCookie('tududi.sid', {
             path: '/',
             httpOnly: true,
-            secure: false,
+            secure: 'auto',
             sameSite: 'lax'
         });
 
@@ -194,10 +226,10 @@ router.get('/auth/oidc/logout', (req, res) => {
         }
 
         // Clear the session cookie to ensure complete logout
-        res.clearCookie('connect.sid', {
+        res.clearCookie('tududi.sid', {
             path: '/',
             httpOnly: true,
-            secure: false,
+            secure: 'auto',
             sameSite: 'lax'
         });
 
@@ -235,10 +267,10 @@ router.get('/auth/oidc/logout/local', (req, res) => {
         }
 
         // Clear the session cookie to ensure complete logout
-        res.clearCookie('connect.sid', {
+        res.clearCookie('tududi.sid', {
             path: '/',
             httpOnly: true,
-            secure: false,
+            secure: 'auto',
             sameSite: 'lax'
         });
 

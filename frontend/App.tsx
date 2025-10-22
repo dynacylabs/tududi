@@ -40,6 +40,7 @@ const App: React.FC = () => {
                 headers: {
                     Accept: 'application/json',
                 },
+                cache: 'no-store', // Prevent browser caching
             });
 
             if (!response.ok) {
