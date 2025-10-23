@@ -25,7 +25,8 @@ RUN npm install --no-audit --no-fund
 COPY . ./
 
 # Build frontend
-RUN NODE_ENV=production npm run frontend:build
+# Increase Node.js heap size to prevent out-of-memory errors during build
+RUN NODE_ENV=production NODE_OPTIONS="--max-old-space-size=4096" npm run frontend:build
 
 # Run backend tests
 # Skip telegramAuth tests due to timeout issues in Docker build environment

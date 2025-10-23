@@ -13,6 +13,7 @@ describe('Auth Middleware', () => {
         res = {
             status: jest.fn().mockReturnThis(),
             json: jest.fn(),
+            clearCookie: jest.fn(),
         };
         next = jest.fn();
     });
@@ -156,7 +157,9 @@ describe('Auth Middleware', () => {
         expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({
             error: 'Authentication required',
+            reason: 'sso_user_mismatch',
         });
+        expect(res.clearCookie).toHaveBeenCalledWith('tududi.sid', expect.any(Object));
         expect(next).not.toHaveBeenCalled();
     });
 
