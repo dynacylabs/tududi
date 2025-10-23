@@ -64,10 +64,36 @@ router.get('/current_user', async (req, res) => {
                 if (isOidcUser) {
                     console.log(`🔍 SSO Validation Check:`);
                     console.log(`   Session user: ${user.email} (ID: ${userId})`);
+                    console.log(`   Session OIDC sub: ${req.session?.oidc_sub || '(not in session)'}`);
+                    console.log(`   User's OIDC sub: ${user.oidc_sub}`);
                     console.log(`   Remote-User header: ${remoteUser || '(not provided)'}`);
-                    console.log(`   Is OIDC user: ${isOidcUser}`);
                     
-                    // If Remote-User header is provided, validate it matches
+                    // First check: Validate session OIDC sub matches user's OIDC sub
+                    const sessionOidcSub = req.session?.oidc_sub;
+                    if (sessionOidcSub && sessionOidcSub !== user.oidc_sub) {
+                        console.log(`⚠️ SESSION OIDC SUB MISMATCH!`);
+                        console.log(`   Session has OIDC sub: ${sessionOidcSub}`);
+                        console.log(`   User has OIDC sub: ${user.oidc_sub}`);
+                        console.log(`🔄 Clearing stale session - forcing re-authentication`);
+                        
+                        const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+                        res.clearCookie('tududi.sid', {
+                            path: '/',
+                            httpOnly: true,
+                            secure: isSecure,
+                            sameSite: 'lax'
+                        });
+                        
+                        req.session.destroy((err) => {
+                            if (err) {
+                                console.error('Error destroying session:', err);
+                            }
+                        });
+                        
+                        return res.json({ user: null });
+                    }
+                    
+                    // Second check: If Remote-User header is provided, validate it matches
                     if (remoteUser) {
                         // Check if the remote user matches the session user
                         // Remote-User from Authelia might be username or email
@@ -370,15 +396,29 @@ router.get(
                 );
             }
 
-            // Check if there's an existing session with a different user
+            // CRITICAL: Check if there's an existing session with a different user
+            // This happens when:
+            // 1. User A logs in via SSO
+            // 2. User A logs out of Authelia (but Tududi session still exists)
+            // 3. User B logs in via SSO
+            // We need to completely destroy the old session before creating a new one
             const existingUserId = req.session?.userId;
+            const existingOidcSub = req.session?.oidc_sub;
+            
             if (existingUserId && existingUserId !== user.id) {
-                console.log(`⚠️ Session switch detected: existing user ID ${existingUserId} → new user ID ${user.id} (${user.email})`);
-                console.log('Destroying old session and creating new one');
+                console.log(`⚠️ USER SWITCH DETECTED!`);
+                console.log(`   Existing session: User ID ${existingUserId} (OIDC sub: ${existingOidcSub})`);
+                console.log(`   New SSO login: User ID ${user.id}, Email: ${user.email} (OIDC sub: ${user.oidc_sub})`);
+                console.log(`   🔄 Destroying old session and creating fresh one`);
+            } else if (existingOidcSub && existingOidcSub !== user.oidc_sub) {
+                console.log(`⚠️ OIDC SUB MISMATCH DETECTED!`);
+                console.log(`   Session OIDC sub: ${existingOidcSub}`);
+                console.log(`   Authenticated OIDC sub: ${user.oidc_sub}`);
+                console.log(`   🔄 Destroying stale session`);
             }
 
-            // Regenerate session to prevent session fixation and ensure clean state
-            // This is especially important when switching between SSO users
+            // ALWAYS regenerate session on OIDC callback
+            // This prevents session fixation and ensures we don't carry over stale session data
             req.session.regenerate((err) => {
                 if (err) {
                     console.error('Session regeneration error:', err);
@@ -393,6 +433,11 @@ router.get(
                 // Set session userId FIRST before passport login
                 // This ensures the session has the correct user ID immediately
                 req.session.userId = user.id;
+                
+                // Store the OIDC sub in the session for validation on subsequent requests
+                // This allows us to detect if the SSO user has changed
+                req.session.oidc_sub = user.oidc_sub;
+                req.session.oidc_provider = user.oidc_provider;
                 
                 // Mark that this is an OIDC login for logout handling
                 req.session.isOidcLogin = true;

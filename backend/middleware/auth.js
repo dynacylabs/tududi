@@ -33,7 +33,38 @@ const requireAuth = async (req, res, next) => {
         const isOidcUser = !!(user.oidc_sub && user.oidc_provider);
         
         if (isOidcUser) {
-            // If Remote-User header is provided by Authelia, validate it matches the session user
+            // First check: Validate session OIDC sub matches user's OIDC sub
+            // This catches cases where the session is stale or belongs to a different SSO user
+            const sessionOidcSub = req.session?.oidc_sub;
+            if (sessionOidcSub && sessionOidcSub !== user.oidc_sub) {
+                console.log(`⚠️ [Auth Middleware] SESSION OIDC SUB MISMATCH!`);
+                console.log(`   Path: ${req.path}`);
+                console.log(`   Session OIDC sub: ${sessionOidcSub}`);
+                console.log(`   User's OIDC sub: ${user.oidc_sub}`);
+                console.log(`   User email: ${user.email} (ID: ${userId})`);
+                console.log(`   🔄 Destroying invalid session`);
+                
+                const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+                res.clearCookie('tududi.sid', {
+                    path: '/',
+                    httpOnly: true,
+                    secure: isSecure,
+                    sameSite: 'lax'
+                });
+                
+                req.session.destroy((err) => {
+                    if (err) {
+                        console.error('Error destroying session:', err);
+                    }
+                });
+                
+                return res.status(401).json({ 
+                    error: 'Authentication required',
+                    reason: 'sso_session_mismatch'
+                });
+            }
+            
+            // Second check: If Remote-User header is provided by Authelia, validate it matches the session user
             if (remoteUser) {
                 // Check if the remote user matches the session user
                 // Remote-User from Authelia might be username or email
